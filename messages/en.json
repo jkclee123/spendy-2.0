@@ -78,8 +78,8 @@
   },
   "categories": {
     "title": "Categories",
-    "active": "Active Categories",
-    "inactive": "Inactive Categories",
+    "active": "Active",
+    "inactive": "Inactive",
     "createNew": "Add Category",
     "editCategory": "Edit Category",
     "createCategory": "Create Category",

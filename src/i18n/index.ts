@@ -19,7 +19,8 @@ i18n
       escapeValue: false,
     },
     detection: {
-      order: ["navigator"],
+      order: ["localStorage", "navigator"],
+      caches: ["localStorage"],
       convertDetectedLanguage: (lng: string) => {
         if (lng.startsWith("zh")) return "zh-HK";
         return "en";

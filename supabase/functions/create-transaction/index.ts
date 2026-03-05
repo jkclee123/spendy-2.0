@@ -170,26 +170,8 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const tx = transaction as {
-    id: string;
-    amount: number;
-    name: string | null;
-    type: string;
-    created_at: number;
-  };
-
   return new Response(
-    JSON.stringify({
-      success: true,
-      transaction: {
-        id: tx.id,
-        amount: tx.amount,
-        category: categoryName,
-        name: tx.name || "",
-        type: tx.type,
-        createdAt: tx.created_at,
-      },
-    }),
+    JSON.stringify({ success: true }),
     { status: 201, headers: rateLimitHeaders }
   );
 });

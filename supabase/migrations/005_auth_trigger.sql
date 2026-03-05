@@ -22,7 +22,7 @@ BEGIN
   -- Insert default categories
   INSERT INTO public.user_categories (user_id, emoji, en_name, zh_name, created_at)
   VALUES
-    (NEW.id, '🍗', 'Restaurant', '餐廳', v_now),
+    (NEW.id, '🍗', 'Restaurant', '食飯', v_now),
     (NEW.id, '🚃', 'Transport', '搭車', v_now + 1);
 
   RETURN NEW;

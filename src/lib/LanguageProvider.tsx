@@ -24,7 +24,8 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const { i18n } = useTranslation();
   const { user } = useAuth();
-  const [isLanguageReady, setIsLanguageReady] = useState(false);
+  const hasCachedLang = !!localStorage.getItem("i18nextLng");
+  const [isLanguageReady, setIsLanguageReady] = useState(hasCachedLang);
 
   useEffect(() => {
     async function syncLanguage() {
