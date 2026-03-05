@@ -13,7 +13,7 @@ export function AuthenticatedClientWrapper({ children }: AuthenticatedClientWrap
   return (
     <div className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-950">
       <Header />
-      <main className="flex-1 pb-20 lg:pl-20 bg-gray-100 dark:bg-gray-950">
+      <main className="flex-1 pb-nav-safe lg:pb-0 lg:pl-20 bg-gray-100 dark:bg-gray-950">
         <div className="mt-5 mx-auto max-w-4xl px-4">
           <ErrorBoundary>
             {isLanguageReady ? (

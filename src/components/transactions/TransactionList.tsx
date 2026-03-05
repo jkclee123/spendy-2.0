@@ -113,6 +113,18 @@ export function TransactionList({
   const [offset, setOffset] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<TransactionWithCategory | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [reconnectKey, setReconnectKey] = useState(0);
+
+  // Reconnect on tab visibility
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setReconnectKey((k) => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // Fetch transactions
   const fetchTransactions = useCallback(
@@ -151,7 +163,7 @@ export function TransactionList({
     setIsLoading(true);
     setOffset(0);
     fetchTransactions(0, false).finally(() => setIsLoading(false));
-  }, [fetchTransactions]);
+  }, [fetchTransactions, reconnectKey]);
 
   // Realtime subscription
   useEffect(() => {
@@ -195,7 +207,7 @@ export function TransactionList({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, type, nameSearch, category, minAmount, maxAmount, startDate, endDate]);
+  }, [userId, type, nameSearch, category, minAmount, maxAmount, startDate, endDate, reconnectKey]);
 
   // Load more
   const loadMore = useCallback(async () => {
