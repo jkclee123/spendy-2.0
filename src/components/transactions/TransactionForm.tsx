@@ -102,6 +102,7 @@ export function TransactionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [createdAt, setCreatedAt] = useState<string>("");
+  const [dateModified, setDateModified] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(true);
   const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -140,11 +141,13 @@ export function TransactionForm({
       setName(initialData.name || "");
       setCategory(initialData.category_id ?? undefined);
       setCreatedAt(formatToDatetimeLocal(initialData.created_at));
+      setDateModified(false);
     } else {
       setAmount("");
       setName("");
       setCategory(undefined);
       setCreatedAt(formatToDatetimeLocal(Date.now()));
+      setDateModified(false);
     }
     setErrors({});
   }, [initialData]);
@@ -195,14 +198,14 @@ export function TransactionForm({
         });
         showToast(t("successMessages.updated"), "success");
       } else {
-        const createdAtTimestamp = createdAt ? parseDatetimeLocal(createdAt) : Date.now();
+        const createdAtTimestamp = dateModified ? (parseDatetimeLocal(createdAt) ?? Date.now()) : Date.now();
         await transactionService.createTransaction({
           userId,
           amount: evaluatedAmount,
           name,
           categoryId: type === "income" ? undefined : category,
           type,
-          createdAt: createdAtTimestamp ?? Date.now(),
+          createdAt: createdAtTimestamp,
           timezoneOffset,
         });
 
@@ -210,6 +213,7 @@ export function TransactionForm({
         setName("");
         setCategory(undefined);
         setCreatedAt(formatToDatetimeLocal(Date.now()));
+        setDateModified(false);
         showToast(t("successMessages.created"), "success");
       }
 
@@ -435,7 +439,7 @@ export function TransactionForm({
               type="datetime-local"
               id="createdAt"
               value={createdAt}
-              onChange={(e) => setCreatedAt(e.target.value)}
+              onChange={(e) => { setCreatedAt(e.target.value); setDateModified(true); }}
               disabled={isSubmitting}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
               style={{ fontSize: "16px" }}
