@@ -183,7 +183,10 @@ export function TransactionList({
           if (payload.eventType === "INSERT") {
             const newTx = await transactionService.getTransactionById(payload.new.id as string);
             if (newTx && matchesFilters(newTx, filters)) {
-              setTransactions((prev) => [newTx, ...prev]);
+              setTransactions((prev) => {
+                if (prev.some((t) => t.id === newTx.id)) return prev;
+                return [newTx, ...prev];
+              });
             }
           } else if (payload.eventType === "UPDATE") {
             const updatedTx = await transactionService.getTransactionById(payload.new.id as string);
