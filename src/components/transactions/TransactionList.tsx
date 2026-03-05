@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/components/ui/Toast";
 import * as transactionService from "@/lib/services/transactions";
+import { supabase } from "@/lib/supabase";
 
 interface TransactionListProps {
   userId: string;
@@ -22,6 +23,28 @@ interface TransactionListProps {
 }
 
 const PAGE_SIZE = 20;
+
+interface Filters {
+  type?: "expense" | "income";
+  nameSearch?: string;
+  category?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  startDate?: number;
+  endDate?: number;
+}
+
+function matchesFilters(t: TransactionWithCategory, filters: Filters): boolean {
+  if (filters.type && t.type !== filters.type) return false;
+  if (filters.nameSearch && !t.name?.toLowerCase().includes(filters.nameSearch.toLowerCase()))
+    return false;
+  if (filters.category && t.category_id !== filters.category) return false;
+  if (filters.minAmount !== undefined && t.amount < filters.minAmount) return false;
+  if (filters.maxAmount !== undefined && t.amount > filters.maxAmount) return false;
+  if (filters.startDate !== undefined && t.created_at < filters.startDate) return false;
+  if (filters.endDate !== undefined && t.created_at > filters.endDate) return false;
+  return true;
+}
 
 function formatDateHeader(timestamp: number, t: (key: string) => string): string {
   const date = new Date(timestamp);
@@ -129,6 +152,50 @@ export function TransactionList({
     setOffset(0);
     fetchTransactions(0, false).finally(() => setIsLoading(false));
   }, [fetchTransactions]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const filters: Filters = { type, nameSearch, category, minAmount, maxAmount, startDate, endDate };
+
+    const channel = supabase
+      .channel(`transactions:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+          filter: `user_id=eq.${userId}`,
+        },
+        async (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newTx = await transactionService.getTransactionById(payload.new.id as string);
+            if (newTx && matchesFilters(newTx, filters)) {
+              setTransactions((prev) => [newTx, ...prev]);
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const updatedTx = await transactionService.getTransactionById(payload.new.id as string);
+            setTransactions((prev) => {
+              const exists = prev.some((t) => t.id === payload.new.id);
+              if (!updatedTx || !matchesFilters(updatedTx, filters)) {
+                return prev.filter((t) => t.id !== payload.new.id);
+              }
+              if (exists) {
+                return prev.map((t) => (t.id === updatedTx.id ? updatedTx : t));
+              }
+              return prev;
+            });
+          } else if (payload.eventType === "DELETE") {
+            setTransactions((prev) => prev.filter((t) => t.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, type, nameSearch, category, minAmount, maxAmount, startDate, endDate]);
 
   // Load more
   const loadMore = useCallback(async () => {
