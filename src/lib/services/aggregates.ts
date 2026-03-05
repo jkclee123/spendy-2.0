@@ -1,0 +1,67 @@
+import { supabase } from "@/lib/supabase";
+import type { CategoryAggregation, MonthlyIncomeExpenseData } from "@/types";
+
+export async function getMonthlyIncomeExpenseTrend(
+  userId: string,
+  year: number,
+  categoryId?: string | null
+): Promise<MonthlyIncomeExpenseData[]> {
+  const { data, error } = await supabase.rpc("get_monthly_income_expense_trend", {
+    p_user_id: userId,
+    p_year: year,
+    p_category_id: categoryId ?? null,
+  });
+
+  if (error) throw error;
+  return (data ?? []) as MonthlyIncomeExpenseData[];
+}
+
+export async function getExpensesByCategory(
+  userId: string,
+  startYear: number,
+  startMonth: number,
+  endYear: number,
+  endMonth: number
+): Promise<CategoryAggregation[]> {
+  const { data, error } = await supabase.rpc("get_expenses_by_category", {
+    p_user_id: userId,
+    p_start_year: startYear,
+    p_start_month: startMonth,
+    p_end_year: endYear,
+    p_end_month: endMonth,
+  });
+
+  if (error) throw error;
+  return (data ?? []) as CategoryAggregation[];
+}
+
+export async function getEarliestTransactionDate(userId: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") return null; // No rows
+    throw error;
+  }
+  return data?.created_at ?? null;
+}
+
+export async function listAvailableTransactionYears(userId: string): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("aggregates")
+    .select("year")
+    .eq("user_id", userId)
+    .order("year", { ascending: true });
+
+  if (error) throw error;
+  if (!data) return [];
+
+  // Deduplicate years
+  const years = [...new Set(data.map((row: { year: number }) => row.year))];
+  return years;
+}

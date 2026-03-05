@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Generated files
+convex/_generated/
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Minified files
+*.min.js
+
+# PWA generated files
+public/sw.js
+public/workbox-*.js

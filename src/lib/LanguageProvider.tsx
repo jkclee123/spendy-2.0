@@ -1,0 +1,58 @@
+import { ReactNode, createContext, useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { ToastProvider } from "@/components/ui/Toast";
+
+interface LanguageReadyContextValue {
+  isLanguageReady: boolean;
+}
+
+const LanguageReadyContext = createContext<LanguageReadyContextValue>({ isLanguageReady: false });
+
+export function useLanguageReady() {
+  return useContext(LanguageReadyContext);
+}
+
+interface LanguageProviderProps {
+  children: ReactNode;
+}
+
+/**
+ * Language provider that syncs user language preference with i18next
+ */
+export function LanguageProvider({ children }: LanguageProviderProps) {
+  const { i18n } = useTranslation();
+  const { user } = useAuth();
+  const [isLanguageReady, setIsLanguageReady] = useState(false);
+
+  useEffect(() => {
+    async function syncLanguage() {
+      if (!user) {
+        setIsLanguageReady(true);
+        return;
+      }
+
+      // Fetch user's language preference from Supabase
+      const { data } = await supabase.from("users").select("lang").eq("id", user.id).single();
+
+      if (data?.lang && data.lang !== "system") {
+        await i18n.changeLanguage(data.lang);
+      } else {
+        // Use browser detection (already handled by i18next-browser-languagedetector)
+        const browserLang = navigator.language;
+        await i18n.changeLanguage(browserLang.startsWith("zh") ? "zh-HK" : "en");
+      }
+
+      setIsLanguageReady(true);
+    }
+
+    syncLanguage();
+  }, [user, i18n]);
+
+  return (
+    <LanguageReadyContext.Provider value={{ isLanguageReady }}>
+      <ToastProvider>{children}</ToastProvider>
+    </LanguageReadyContext.Provider>
+  );
+}
