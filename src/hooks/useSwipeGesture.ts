@@ -37,6 +37,8 @@ export function useSwipeGesture(config: SwipeGestureConfig): SwipeGestureReturn 
   const [offset, setOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const swipeDirectionLocked = useRef<"horizontal" | "vertical" | null>(null);
   const currentOffset = useRef(0);
   const hasSwipedRef = useRef(false);
   const elementRef = useRef<HTMLDivElement>(null);
@@ -87,17 +89,30 @@ export function useSwipeGesture(config: SwipeGestureConfig): SwipeGestureReturn 
     if (!element) return;
 
     const handleTouchStart = (e: TouchEvent) => {
+      touchStartY.current = e.touches[0].clientY;
+      swipeDirectionLocked.current = null;
       handleDragStart(e.touches[0].clientX);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      handleDragMove(e.touches[0].clientX);
-      if (hasSwipedRef.current) {
+      if (touchStartX.current === null || touchStartY.current === null) return;
+
+      const deltaX = Math.abs(e.touches[0].clientX - touchStartX.current);
+      const deltaY = Math.abs(e.touches[0].clientY - touchStartY.current);
+
+      if (swipeDirectionLocked.current === null && (deltaX > 5 || deltaY > 5)) {
+        swipeDirectionLocked.current = deltaX >= deltaY ? "horizontal" : "vertical";
+      }
+
+      if (swipeDirectionLocked.current === "horizontal") {
         e.preventDefault();
+        handleDragMove(e.touches[0].clientX);
       }
     };
 
     const handleTouchEnd = () => {
+      touchStartY.current = null;
+      swipeDirectionLocked.current = null;
       handleDragEnd();
     };
 
