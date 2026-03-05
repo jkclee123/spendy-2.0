@@ -118,33 +118,38 @@ Deno.serve(async (req: Request) => {
   }
 
   const categoryName = typeof body.category === "string" ? body.category.trim() : null;
+  if (!categoryName) {
+    return new Response(JSON.stringify({ error: "category is required and must be a non-empty string" }), {
+      status: 400,
+      headers: rateLimitHeaders,
+    });
+  }
+
   const name = typeof body.name === "string" ? body.name.trim() : null;
 
   // Resolve category
   let categoryId: string | null = null;
-  if (categoryName) {
-    const { data: foundCategoryId } = await supabase.rpc("find_category_by_name", {
-      p_user_id: userId,
-      p_name: categoryName,
-    });
+  const { data: foundCategoryId } = await supabase.rpc("find_category_by_name", {
+    p_user_id: userId,
+    p_name: categoryName,
+  });
 
-    if (foundCategoryId) {
-      categoryId = foundCategoryId as string;
-    } else {
-      // Auto-create category
-      const { data: newCategory } = await supabase
-        .from("user_categories")
-        .insert({
-          user_id: userId,
-          emoji: "📌",
-          en_name: categoryName,
-          zh_name: categoryName,
-          created_at: Date.now(),
-        })
-        .select("id")
-        .single();
-      categoryId = newCategory?.id ?? null;
-    }
+  if (foundCategoryId) {
+    categoryId = foundCategoryId as string;
+  } else {
+    // Auto-create category
+    const { data: newCategory } = await supabase
+      .from("user_categories")
+      .insert({
+        user_id: userId,
+        emoji: "❓",
+        en_name: categoryName,
+        zh_name: categoryName,
+        created_at: Date.now(),
+      })
+      .select("id")
+      .single();
+    categoryId = newCategory?.id ?? null;
   }
 
   // Create transaction via RPC
@@ -179,7 +184,7 @@ Deno.serve(async (req: Request) => {
       transaction: {
         id: tx.id,
         amount: tx.amount,
-        category: categoryName || "Uncategorized",
+        category: categoryName,
         name: tx.name || "",
         type: tx.type,
         createdAt: tx.created_at,

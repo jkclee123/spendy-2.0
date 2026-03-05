@@ -163,7 +163,7 @@ describe("Charts Navigation Integration", () => {
     const mockCategoryData = {
       emoji: "🍔",
       en_name: "Food",
-      zh_name: "食物",
+      zh_name: "食飯",
     };
 
     const getCategoryLabel = (lang: "en" | "zh-HK") => {
@@ -178,6 +178,6 @@ describe("Charts Navigation Integration", () => {
     const chineseLabel = getCategoryLabel("zh-HK");
 
     expect(englishLabel).toBe("🍔 Food");
-    expect(chineseLabel).toBe("🍔 食物");
+    expect(chineseLabel).toBe("🍔 食飯");
   });
 });
