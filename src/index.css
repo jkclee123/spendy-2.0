@@ -21,9 +21,6 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .pb-nav-safe {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-  }
 }
 
 :root {
