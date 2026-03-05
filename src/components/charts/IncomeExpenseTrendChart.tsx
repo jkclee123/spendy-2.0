@@ -35,10 +35,9 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
+  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
 
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedExpenseCategoryId, setSelectedExpenseCategoryId] = useState<string | null>(null);
   const [availableYears, setAvailableYears] = useState<number[] | null>(null);
   const [categories, setCategories] = useState<UserCategory[] | undefined>(undefined);
@@ -47,6 +46,17 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
 
   useEffect(() => {
     if (!userId) return;
+    aggregatesService
+      .getCurrentUserYearMonth(userId)
+      .then(({ year }) => {
+        setCurrentYear(year);
+        setSelectedYear((prev) => prev ?? year);
+      })
+      .catch(() => {
+        const year = new Date().getFullYear();
+        setCurrentYear(year);
+        setSelectedYear((prev) => prev ?? year);
+      });
     aggregatesService
       .listAvailableTransactionYears(userId)
       .then(setAvailableYears)
@@ -58,7 +68,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, [userId]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || selectedYear === null) return;
     setIsRefetchingMonthly(true);
     aggregatesService
       .getMonthlyIncomeExpenseTrend(userId, selectedYear, selectedExpenseCategoryId)
@@ -87,22 +97,22 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, [availableYears, currentYear]);
 
   const isAtEarliestYear = useMemo(
-    () => selectedYear <= earliestAvailableYear,
+    () => selectedYear === null || selectedYear <= earliestAvailableYear,
     [selectedYear, earliestAvailableYear]
   );
   const isAtLatestYear = useMemo(
-    () => selectedYear >= latestAvailableYear,
+    () => selectedYear === null || selectedYear >= latestAvailableYear,
     [selectedYear, latestAvailableYear]
   );
 
   const goToPreviousYear = useCallback(() => {
     if (isAtEarliestYear) return;
-    setSelectedYear((prev) => prev - 1);
+    setSelectedYear((prev) => (prev !== null ? prev - 1 : prev));
   }, [isAtEarliestYear]);
 
   const goToNextYear = useCallback(() => {
     if (isAtLatestYear) return;
-    setSelectedYear((prev) => prev + 1);
+    setSelectedYear((prev) => (prev !== null ? prev + 1 : prev));
   }, [isAtLatestYear]);
 
   const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -173,7 +183,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
         return (
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700 p-3 shadow-lg border border-gray-300 dark:border-gray-500">
             <p className="font-medium text-gray-900 dark:text-gray-200 mb-2">
-              {label} {selectedYear}
+              {label} {selectedYear!}
             </p>
             {payload.map((entry, index) => (
               <p
@@ -199,7 +209,10 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, [chartData, monthlyData]);
 
   const isLoading =
-    monthlyData === undefined || categories === undefined || availableYears === null;
+    monthlyData === undefined ||
+    categories === undefined ||
+    availableYears === null ||
+    selectedYear === null;
 
   // Suppress unused isDarkMode warning — used for grid color
   void isDarkMode;
@@ -221,7 +234,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
           </button>
 
           <select
-            value={selectedYear}
+            value={selectedYear!}
             onChange={handleYearChange}
             className="min-h-[38px] appearance-none rounded-lg border border-gray-400 dark:border-gray-500 bg-white px-4 py-2 text-center text-sm font-medium text-gray-900 transition-colors hover:border-black dark:hover:border-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-200"
             aria-label={t("yearNavigation.selectYear")}
@@ -285,7 +298,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
           {isEmpty ? (
             <div className="flex h-64 flex-col items-center justify-center">
               <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
-                {t("noData", { period: selectedYear })}
+                {t("noData", { period: selectedYear! })}
               </p>
             </div>
           ) : (

@@ -53,19 +53,18 @@ const COLORS_DARK = [
 export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps) {
   const { lang } = useLanguage();
   const { t } = useTranslation("charts");
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed
 
-  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number }>({
-    year: currentYear,
-    month: currentMonth,
-  });
-  const [isAllTime, setIsAllTime] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [earliestTransactionDate, setEarliestTransactionDate] = useState<number | null | undefined>(
+  const [currentYearMonth, setCurrentYearMonth] = useState<
+    { year: number; month: number } | undefined
+  >(undefined);
+  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | undefined>(
     undefined
   );
+  const [isAllTime, setIsAllTime] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [earliestYearMonth, setEarliestYearMonth] = useState<
+    { year: number; month: number } | null | undefined
+  >(undefined);
   const [categoryData, setCategoryData] = useState<CategoryAggregation[] | undefined>(undefined);
 
   useEffect(() => {
@@ -79,24 +78,32 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   useEffect(() => {
     if (!userId) return;
     aggregatesService
-      .getEarliestTransactionDate(userId)
-      .then((date) => setEarliestTransactionDate(date))
-      .catch(() => setEarliestTransactionDate(null));
+      .getCurrentUserYearMonth(userId)
+      .then((ym) => {
+        setCurrentYearMonth(ym);
+        setSelectedMonth((prev) => prev ?? ym);
+      })
+      .catch(() => {
+        const now = new Date();
+        const fallback = { year: now.getFullYear(), month: now.getMonth() };
+        setCurrentYearMonth(fallback);
+        setSelectedMonth((prev) => prev ?? fallback);
+      });
+    aggregatesService
+      .getEarliestAggregateYearMonth(userId)
+      .then((ym) => setEarliestYearMonth(ym))
+      .catch(() => setEarliestYearMonth(null));
   }, [userId]);
 
   const dateRangeParams = useMemo(() => {
+    if (!selectedMonth || !currentYearMonth) return null;
     if (isAllTime) {
-      const earliest = earliestTransactionDate
-        ? new Date(earliestTransactionDate)
-        : new Date(currentYear, 0, 1);
-      const startYear = earliest.getFullYear();
-      const startMonth = earliest.getMonth() + 1;
-      const now = new Date();
+      const startYM = earliestYearMonth ?? { year: currentYearMonth.year, month: 0 };
       return {
-        startYear,
-        startMonth,
-        endYear: now.getFullYear(),
-        endMonth: now.getMonth() + 1,
+        startYear: startYM.year,
+        startMonth: startYM.month + 1,
+        endYear: currentYearMonth.year,
+        endMonth: currentYearMonth.month + 1,
       };
     }
     return {
@@ -105,10 +112,10 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       endYear: selectedMonth.year,
       endMonth: selectedMonth.month + 1,
     };
-  }, [isAllTime, selectedMonth, earliestTransactionDate, currentYear]);
+  }, [isAllTime, selectedMonth, earliestYearMonth, currentYearMonth]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !dateRangeParams) return;
     setCategoryData(undefined);
     aggregatesService
       .getExpensesByCategory(
@@ -123,13 +130,10 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   }, [userId, dateRangeParams]);
 
   const availableMonths = useMemo(() => {
-    if (earliestTransactionDate == null) return [];
-    const earliest = new Date(earliestTransactionDate);
-    const earliestYear = earliest.getFullYear();
-    const earliestMonth = earliest.getMonth();
+    if (earliestYearMonth == null || !currentYearMonth) return [];
     const months: Array<{ year: number; month: number; label: string }> = [];
-    const current = new Date(currentYear, currentMonth, 1);
-    const start = new Date(earliestYear, earliestMonth, 1);
+    const current = new Date(currentYearMonth.year, currentYearMonth.month, 1);
+    const start = new Date(earliestYearMonth.year, earliestYearMonth.month, 1);
     for (let date = new Date(start); date <= current; date.setMonth(date.getMonth() + 1)) {
       months.push({
         year: date.getFullYear(),
@@ -138,7 +142,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       });
     }
     return months;
-  }, [earliestTransactionDate, currentYear, currentMonth]);
+  }, [earliestYearMonth, currentYearMonth]);
 
   const earliestAvailableMonth = useMemo(() => {
     if (availableMonths.length === 0) return null;
@@ -153,7 +157,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   }, [availableMonths]);
 
   const isAtEarliestMonth = useMemo(() => {
-    if (!earliestAvailableMonth) return false;
+    if (!earliestAvailableMonth || !selectedMonth) return false;
     return (
       selectedMonth.year === earliestAvailableMonth.year &&
       selectedMonth.month === earliestAvailableMonth.month
@@ -161,7 +165,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   }, [selectedMonth, earliestAvailableMonth]);
 
   const isAtLatestMonth = useMemo(() => {
-    if (!latestAvailableMonth) return false;
+    if (!latestAvailableMonth || !selectedMonth) return false;
     return (
       selectedMonth.year === latestAvailableMonth.year &&
       selectedMonth.month === latestAvailableMonth.month
@@ -171,6 +175,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   const goToPreviousMonth = useCallback(() => {
     if (isAtEarliestMonth) return;
     setSelectedMonth((prev) => {
+      if (!prev) return prev;
       if (prev.month === 0) return { year: prev.year - 1, month: 11 };
       return { year: prev.year, month: prev.month - 1 };
     });
@@ -179,6 +184,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   const goToNextMonth = useCallback(() => {
     if (isAtLatestMonth) return;
     setSelectedMonth((prev) => {
+      if (!prev) return prev;
       if (prev.month === 11) return { year: prev.year + 1, month: 0 };
       return { year: prev.year, month: prev.month + 1 };
     });
@@ -219,7 +225,8 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   }, [categoryData, getCategoryLabel, isDarkMode]);
 
   const totalAmount = chartData.reduce((sum, item) => sum + item.total, 0);
-  const isLoading = categoryData === undefined || earliestTransactionDate === undefined;
+  const isLoading =
+    categoryData === undefined || earliestYearMonth === undefined || !currentYearMonth;
   const isEmpty = !isLoading && chartData.length === 0;
 
   const formatCurrency = (value: number) => {
@@ -243,7 +250,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
 
   const getCategoryLinkUrl = useCallback(
     (categoryId: string | null | undefined): string | null => {
-      if (!categoryId) return null;
+      if (!categoryId || !selectedMonth) return null;
       const params = new URLSearchParams();
       params.set("category", categoryId);
       if (!isAllTime) {
@@ -262,7 +269,9 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
     [isAllTime, selectedMonth, formatDate, getLastDayOfMonth]
   );
 
-  const selectedMonthLabel = `${String(selectedMonth.month + 1).padStart(2, "0")}/${selectedMonth.year}`;
+  const selectedMonthLabel = selectedMonth
+    ? `${String(selectedMonth.month + 1).padStart(2, "0")}/${selectedMonth.year}`
+    : "";
   const emptyStateMessage = isAllTime
     ? t("noData", { period: t("allTime") })
     : t("noDataForMonth", { month: selectedMonthLabel });
@@ -283,7 +292,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
         </button>
 
         <select
-          value={isAllTime ? "all-time" : `${selectedMonth.year}-${selectedMonth.month}`}
+          value={isAllTime ? "all-time" : selectedMonth ? `${selectedMonth.year}-${selectedMonth.month}` : ""}
           onChange={handleMonthChange}
           className="min-h-[44px] appearance-none rounded-lg border border-gray-400 dark:border-gray-500 bg-white px-4 py-2 text-center text-sm font-medium text-gray-900 transition-colors hover:border-black dark:hover:border-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-200"
           aria-label={t("monthNavigation.selectMonth")}

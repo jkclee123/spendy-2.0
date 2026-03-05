@@ -51,6 +51,26 @@ export async function getEarliestTransactionDate(userId: string): Promise<number
   return data?.created_at ?? null;
 }
 
+export async function getCurrentUserYearMonth(
+  userId: string
+): Promise<{ year: number; month: number }> {
+  const { data, error } = await supabase.rpc("get_current_user_yearmonth", {
+    p_user_id: userId,
+  });
+  if (error || !data?.[0]) return { year: new Date().getFullYear(), month: new Date().getMonth() };
+  return { year: data[0].year, month: data[0].month - 1 }; // month back to 0-indexed for JS
+}
+
+export async function getEarliestAggregateYearMonth(
+  userId: string
+): Promise<{ year: number; month: number } | null> {
+  const { data, error } = await supabase.rpc("get_earliest_aggregate_yearmonth", {
+    p_user_id: userId,
+  });
+  if (error || !data?.[0]) return null;
+  return { year: data[0].year, month: data[0].month - 1 }; // month back to 0-indexed for JS
+}
+
 export async function listAvailableTransactionYears(userId: string): Promise<number[]> {
   const { data, error } = await supabase
     .from("aggregates")
