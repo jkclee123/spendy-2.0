@@ -5,7 +5,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, action }: PageHeaderProps) {
   return (
-    <div className={`flex items-center mb-5 ${action ? "justify-between" : ""}`}>
+    <div className={`ml-4 flex items-center mb-5 ${action ? "justify-between" : ""}`}>
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-200">{title}</h2>
       {action}
     </div>

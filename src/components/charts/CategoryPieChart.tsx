@@ -321,9 +321,6 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
           <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
             {emptyStateMessage}
           </p>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {t("totalExpenses")}: {formatCurrency(0)}
-          </p>
         </div>
       )}
 

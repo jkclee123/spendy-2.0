@@ -27,7 +27,7 @@
     "incomeExpenseTrend": "收支趨勢",
     "income": "收入",
     "expense": "支出",
-    "noData": "{period}沒有資料",
+    "noData": "本年沒有資料",
     "noDataForMonth": "本月沒有支出",
     "categoryFilter": {
       "all": "所有類別"

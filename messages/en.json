@@ -27,8 +27,8 @@
     "incomeExpenseTrend": "Income Expense Trend",
     "income": "Income",
     "expense": "Expense",
-    "noData": "No data for {period}",
-    "noDataForMonth": "No spending this month",
+    "noData": "No data for this year",
+    "noDataForMonth": "No spending for this month",
     "categoryFilter": {
       "all": "All Category"
     },

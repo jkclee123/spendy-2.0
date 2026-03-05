@@ -47,10 +47,10 @@ export function useLanguage(): LanguageContext {
 
   // Sync i18next language when lang changes
   useEffect(() => {
-    if (i18n.language !== lang) {
+    if (!isLoading && i18n.language !== lang) {
       i18n.changeLanguage(lang);
     }
-  }, [lang, i18n]);
+  }, [lang, i18n, isLoading]);
 
   const setUserPreference = useCallback(
     async (newLang: "system" | "en" | "zh-HK") => {
