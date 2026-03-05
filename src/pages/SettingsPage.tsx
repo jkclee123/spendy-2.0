@@ -28,6 +28,36 @@ export function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title={t("title")} />
 
+      {/* Profile Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("profile")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            {user.user_metadata.avatar_url ? (
+              <img
+                src={user.user_metadata.avatar_url}
+                alt={user.user_metadata.full_name || "User"}
+                className="h-16 w-16 rounded-full"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-2xl font-semibold text-white">
+                {(user.user_metadata.full_name || user.email || "?")[0].toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
+                {user.user_metadata.full_name}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {user.email}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Language Settings */}
       <Card>
         <CardHeader>
@@ -37,7 +67,6 @@ export function SettingsPage() {
           <LanguageSelect
             value={userPreference}
             onChange={setUserPreference}
-            label={t("languageLabel")}
           />
         </CardContent>
       </Card>

@@ -21,7 +21,7 @@
   },
   "charts": {
     "title": "Charts",
-    "expensesRatio": "Expenses Ratio",
+    "expensesByCategory": "Expenses Ratio",
     "totalExpenses": "Total Expenses",
     "allTime": "All Time",
     "incomeExpenseTrend": "Income Expense Trend",
@@ -72,8 +72,8 @@
       "title": "iPhone API Shortcut",
       "description": "Download this shortcut, paste in your API token to quickly add transactions",
       "downloadButton": "Download iPhone Shortcut",
-      "downloadSuccess": "Download started successfully",
-      "downloadError": "Failed to start download"
+      "downloadSuccess": "Download started",
+      "downloadError": "Failed to download"
     }
   },
   "categories": {

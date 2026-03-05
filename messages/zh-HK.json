@@ -21,7 +21,7 @@
   },
   "charts": {
     "title": "圖表",
-    "expensesRatio": "支出比例",
+    "expensesByCategory": "支出比例",
     "totalExpenses": "總支出",
     "allTime": "全時間",
     "incomeExpenseTrend": "收支趨勢",

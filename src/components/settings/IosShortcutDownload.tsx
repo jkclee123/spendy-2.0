@@ -6,56 +6,45 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
-/**
- * Component for downloading the iOS Shortcut file
- * - Displays information about the iOS shortcut
- * - Provides a download button that fetches and opens the file URL
- * - Automatically selects the correct language version based on user locale
- */
 export function IosShortcutDownload() {
   const { t, i18n } = useTranslation("settings");
   const { showToast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadInfo, setDownloadInfo] = useState<{ url: string; fileName: string } | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
 
   const lang = i18n.language;
 
   useEffect(() => {
-    // Query files table for the language-specific shortcut
     const shortcutName = lang === "zh-HK" ? "ios_shortcut_zh" : "ios_shortcut_en";
     supabase
       .from("files")
-      .select("name, storage_path")
+      .select("url")
       .eq("name", shortcutName)
       .single()
       .then(({ data }) => {
-        if (data?.storage_path) {
-          const { data: storageData } = supabase.storage
-            .from("files")
-            .getPublicUrl(data.storage_path);
-          const fileName = lang === "zh-HK" ? "Spendy-zh.shortcut" : "Spendy-en.shortcut";
-          setDownloadInfo({ url: storageData.publicUrl, fileName });
-        }
+        if (data?.url) setUrl(data.url);
       });
   }, [lang]);
 
   const handleDownload = async () => {
-    if (!downloadInfo?.url) {
+    if (!url) {
       showToast(t("iosShortcut.downloadError"), "error");
       return;
     }
 
     setIsDownloading(true);
     try {
-      const response = await fetch(downloadInfo.url);
-      if (!response.ok) throw new Error("Failed to fetch file");
-
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
 
+      const fileName =
+        lang === "zh-HK" ? "spendy-shortcut-zh.shortcut" : "spendy-shortcut-en.shortcut";
+
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = downloadInfo.fileName;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -81,7 +70,7 @@ export function IosShortcutDownload() {
           variant="outline"
           size="sm"
           onClick={handleDownload}
-          disabled={!downloadInfo?.url || isDownloading}
+          disabled={!url || isDownloading}
           isLoading={isDownloading}
           className="w-full"
         >

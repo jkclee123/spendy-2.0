@@ -13,6 +13,7 @@ import * as categoryService from "@/lib/services/categories";
 
 export function CategoriesPage() {
   const { t } = useTranslation("categories");
+  const { t: tCommon } = useTranslation("common");
   const { user } = useAuth();
   const { lang } = useLanguage();
   const [categories, setCategories] = useState<UserCategory[]>([]);
@@ -110,8 +111,8 @@ export function CategoriesPage() {
         title={t("title")}
         action={
           <Button variant="primary" size="sm" onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t("createCategory")}
+            <Plus className="h-4 w-4" />
+            {tCommon("create")}
           </Button>
         }
       />
