@@ -30,6 +30,11 @@ export function AuthenticatedClientWrapper({ children }: AuthenticatedClientWrap
             style={{ height: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
             aria-hidden="true"
           />
+          {/* Smaller bottom spacer on large screens */}
+          <div
+            className="hidden lg:block h-8"
+            aria-hidden="true"
+          />
         </div>
       </main>
       <NavigationBar isLanguageReady={isLanguageReady} />
