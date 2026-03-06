@@ -165,8 +165,19 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       ? Math.max(...chartData.map((d) => d.expense))
       : Math.max(...chartData.map((d) => Math.max(d.income, d.expense)));
     if (maxValue === 0) return [0, 500, 1000, 1500, 2000];
-    const tickMax = Math.ceil(maxValue / 500) * 500;
-    return Array.from({ length: tickMax / 500 + 1 }, (_, i) => i * 500);
+
+    // Pick a "nice" step targeting ~4 ticks
+    const rawStep = maxValue / 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const normalized = rawStep / magnitude;
+    let step: number;
+    if (normalized <= 1) step = magnitude;
+    else if (normalized <= 2) step = 2 * magnitude;
+    else if (normalized <= 5) step = 5 * magnitude;
+    else step = 10 * magnitude;
+
+    const tickMax = Math.ceil(maxValue / step) * step;
+    return Array.from({ length: Math.round(tickMax / step) + 1 }, (_, i) => i * step);
   }, [chartData, selectedExpenseCategoryId]);
 
   const CustomTooltip = useCallback(
@@ -322,9 +333,13 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                   <YAxis
                     ticks={yAxisTicks}
                     domain={[0, yAxisTicks[yAxisTicks.length - 1]]}
-                    tickFormatter={(value) =>
-                      `$${value >= 1000 ? `${(value / 1000).toFixed(2)}k` : value}`
-                    }
+                    tickFormatter={(value) => {
+                      if (value >= 1000) {
+                        const k = value / 1000;
+                        return `$${Number.isInteger(k) ? k : k.toFixed(1)}k`;
+                      }
+                      return `$${value}`;
+                    }}
                     tick={{ fontSize: 12, fill: "#808080" }}
                     tickLine={false}
                     axisLine={{ stroke: "#808080" }}
