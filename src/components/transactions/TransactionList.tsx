@@ -326,8 +326,8 @@ export function TransactionList({
                       style: "currency",
                       currency: "USD",
                       signDisplay: "always",
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     }).format(dailyTotal)}
                   </span>
                 </div>

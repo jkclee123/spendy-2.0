@@ -15,8 +15,8 @@ export function TransactionCard({ transaction, onClick, onDelete }: TransactionC
   const formattedAmount = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(transaction.amount);
 
   const date = new Date(transaction.created_at);

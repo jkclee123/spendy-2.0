@@ -124,8 +124,8 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   }, []);
 
@@ -323,7 +323,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                     ticks={yAxisTicks}
                     domain={[0, yAxisTicks[yAxisTicks.length - 1]]}
                     tickFormatter={(value) =>
-                      `$${value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}`
+                      `$${value >= 1000 ? `${(value / 1000).toFixed(2)}k` : value}`
                     }
                     tick={{ fontSize: 12, fill: "#808080" }}
                     tickLine={false}
