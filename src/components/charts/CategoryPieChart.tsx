@@ -233,8 +233,8 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
     }).format(value);
   };
 
@@ -292,7 +292,13 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
         </button>
 
         <select
-          value={isAllTime ? "all-time" : selectedMonth ? `${selectedMonth.year}-${selectedMonth.month}` : ""}
+          value={
+            isAllTime
+              ? "all-time"
+              : selectedMonth
+                ? `${selectedMonth.year}-${selectedMonth.month}`
+                : ""
+          }
           onChange={handleMonthChange}
           className="min-h-[44px] appearance-none rounded-lg border border-gray-400 dark:border-gray-500 bg-white px-4 py-2 text-center text-sm font-medium text-gray-900 transition-colors hover:border-black dark:hover:border-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-200"
           aria-label={t("monthNavigation.selectMonth")}

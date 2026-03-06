@@ -323,7 +323,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                     ticks={yAxisTicks}
                     domain={[0, yAxisTicks[yAxisTicks.length - 1]]}
                     tickFormatter={(value) =>
-                      `$${value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}`
+                      `$${value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}`
                     }
                     tick={{ fontSize: 12, fill: "#808080" }}
                     tickLine={false}

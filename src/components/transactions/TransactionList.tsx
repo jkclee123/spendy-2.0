@@ -118,12 +118,12 @@ export function TransactionList({
   // Reconnect on tab visibility
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         setReconnectKey((k) => k + 1);
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   // Fetch transactions
@@ -167,7 +167,15 @@ export function TransactionList({
 
   // Realtime subscription
   useEffect(() => {
-    const filters: Filters = { type, nameSearch, category, minAmount, maxAmount, startDate, endDate };
+    const filters: Filters = {
+      type,
+      nameSearch,
+      category,
+      minAmount,
+      maxAmount,
+      startDate,
+      endDate,
+    };
 
     const channel = supabase
       .channel(`transactions:${userId}`)
@@ -318,6 +326,8 @@ export function TransactionList({
                       style: "currency",
                       currency: "USD",
                       signDisplay: "always",
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
                     }).format(dailyTotal)}
                   </span>
                 </div>
