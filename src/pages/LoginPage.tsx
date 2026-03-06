@@ -30,7 +30,14 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
         <div className="mb-8 text-center">
-          <img src="/logo.png" alt="Spendy" width={80} height={80} className="mx-auto" />
+          <img
+            src="/icons/icon-192x192.png"
+            alt="Spendy"
+            width={80}
+            height={80}
+            fetchPriority="high"
+            className="mx-auto"
+          />
           <h1 className="font-dancing-script text-3xl font-bold text-gray-900 dark:text-gray-200">
             Spendy
           </h1>
