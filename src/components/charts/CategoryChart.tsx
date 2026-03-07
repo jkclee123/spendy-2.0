@@ -12,8 +12,8 @@ interface CategoryPieChartProps {
   className?: string;
 }
 
-// Light mode color palette (Latte theme) for categories
-const COLORS_LIGHT = [
+// Color palette (Latte theme) for categories
+const COLORS = [
   "#8839ef", // Mauve
   "#d20f39", // Red
   "#e64553", // Maroon
@@ -26,22 +26,6 @@ const COLORS_LIGHT = [
   "#1e66f5", // Blue
   "#7287fd", // Lavender
   "#ea76cb", // Pink
-];
-
-// Dark mode color palette (Mocha theme) for categories
-const COLORS_DARK = [
-  "#cba6f7", // Mauve
-  "#f38ba8", // Red
-  "#eba0ac", // Maroon
-  "#fab387", // Peach
-  "#f9e2af", // Yellow
-  "#a6e3a1", // Green
-  "#94e2d5", // Teal
-  "#89dceb", // Sky
-  "#74c7ec", // Sapphire
-  "#89b4fa", // Blue
-  "#b4befe", // Lavender
-  "#f5c2e7", // Pink
 ];
 
 /**
@@ -352,16 +336,17 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
           {/* Horizontal Bar List */}
           <div className="flex flex-col gap-2">
             {chartData.map((item, index) => {
-              const colors = isDarkMode ? COLORS_DARK : COLORS_LIGHT;
-              const color = colors[index % colors.length];
+              const color = COLORS[index % COLORS.length];
               const widthPct = totalAmount > 0 ? (item.total / chartData[0].total) * 100 : 0;
               const categoryUrl = getCategoryLinkUrl(item.category_id);
-              const emojiNode = (
-                <span className="text-xl w-8 text-center shrink-0">{item.emoji || "?"}</span>
-              );
               const rowContent = (
                 <>
-                  {emojiNode}
+                  <span className="flex items-center gap-1 shrink-0">
+                    <span className="text-xl w-8 text-center">{item.emoji || "?"}</span>
+                    <span className="hidden lg:block text-sm text-gray-700 dark:text-gray-300 w-28 truncate">
+                      {item.category}
+                    </span>
+                  </span>
                   {/* Bar */}
                   <div className="flex-1 h-1 rounded bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <div
