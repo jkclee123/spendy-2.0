@@ -197,13 +197,12 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
 
   const chartData = useMemo(() => {
     if (!categoryData) return [];
-    const colors = isDarkMode ? COLORS_DARK : COLORS_LIGHT;
     return [...categoryData]
       .sort((a, b) => b.total - a.total)
       .map((item, index) => ({
         ...item,
         category: getCategoryLabel(item),
-        fill: colors[index % colors.length],
+        fill: COLORS[index % COLORS.length],
       }));
   }, [categoryData, getCategoryLabel, isDarkMode]);
 
