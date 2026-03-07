@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
-import { ExpensesRatio } from "@/components/charts/CategoryPieChart";
-import { IncomeExpenseTrendChart } from "@/components/charts/IncomeExpenseTrendChart";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ExpensesRatio } from "@/components/charts/CategoryChart";
+import { IncomeExpenseTrendChart } from "@/components/charts/TrendChart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export function ChartsPage() {
   const { t } = useTranslation("charts");
@@ -14,7 +14,6 @@ export function ChartsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("title")} />
-
       <Card>
         <CardHeader>
           <CardTitle>{t("expensesByCategory")}</CardTitle>
@@ -23,7 +22,6 @@ export function ChartsPage() {
           <ExpensesRatio userId={user.id} />
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>{t("incomeExpenseTrend")}</CardTitle>
