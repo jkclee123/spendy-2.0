@@ -26,6 +26,8 @@ interface TransactionFiltersProps {
   defaultExpanded?: boolean;
 }
 
+const VALID_TYPES = ["all", "expense", "income"] as const;
+
 function isValidDateString(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
@@ -77,7 +79,11 @@ export function TransactionFilters({
 
   const handleTypeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const newFilters = { ...filters, type: e.target.value as "all" | "expense" | "income" };
+      const raw = e.target.value;
+      const type = VALID_TYPES.includes(raw as (typeof VALID_TYPES)[number])
+        ? (raw as "all" | "expense" | "income")
+        : "all";
+      const newFilters = { ...filters, type };
       onFiltersChange(newFilters);
       onAutoApply(newFilters);
     },

@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
+export const VALID_LANG_VALUES = ["system", "en", "zh-HK"] as const;
+type LangPreference = (typeof VALID_LANG_VALUES)[number];
+
 export interface LanguageContext {
   lang: "en" | "zh-HK";
   userPreference: "system" | "en" | "zh-HK";
@@ -32,7 +35,11 @@ export function useLanguage(): LanguageContext {
       const { data } = await supabase.from("users").select("lang").eq("id", user.id).single();
 
       if (data?.lang) {
-        setUserPref(data.lang as "system" | "en" | "zh-HK");
+        const raw = data.lang;
+        const validated = VALID_LANG_VALUES.includes(raw as LangPreference)
+          ? (raw as LangPreference)
+          : "system";
+        setUserPref(validated);
       }
       setIsLoading(false);
     }
@@ -55,6 +62,7 @@ export function useLanguage(): LanguageContext {
   const setUserPreference = useCallback(
     async (newLang: "system" | "en" | "zh-HK") => {
       if (!user) throw new Error("User not found");
+      if (!VALID_LANG_VALUES.includes(newLang)) throw new Error("Invalid language");
 
       await supabase.from("users").update({ lang: newLang }).eq("id", user.id);
 

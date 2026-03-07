@@ -2,6 +2,7 @@ import { ReactNode, createContext, useContext, useEffect, useState } from "react
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { VALID_LANG_VALUES } from "@/hooks/useLanguage";
 import { ToastProvider } from "@/components/ui/Toast";
 
 interface LanguageReadyContextValue {
@@ -37,10 +38,14 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       // Fetch user's language preference from Supabase
       const { data } = await supabase.from("users").select("lang").eq("id", user.id).single();
 
-      if (data?.lang && data.lang !== "system") {
-        await i18n.changeLanguage(data.lang);
+      const raw = data?.lang;
+      const isValidNonSystem =
+        raw &&
+        raw !== "system" &&
+        VALID_LANG_VALUES.includes(raw as (typeof VALID_LANG_VALUES)[number]);
+      if (isValidNonSystem) {
+        await i18n.changeLanguage(raw);
       } else {
-        // Use browser detection (already handled by i18next-browser-languagedetector)
         const browserLang = navigator.language;
         await i18n.changeLanguage(browserLang.startsWith("zh") ? "zh-HK" : "en");
       }
