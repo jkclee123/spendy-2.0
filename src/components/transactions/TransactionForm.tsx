@@ -198,7 +198,9 @@ export function TransactionForm({
         });
         showToast(t("successMessages.updated"), "success");
       } else {
-        const createdAtTimestamp = dateModified ? (parseDatetimeLocal(createdAt) ?? Date.now()) : Date.now();
+        const createdAtTimestamp = dateModified
+          ? (parseDatetimeLocal(createdAt) ?? Date.now())
+          : Date.now();
         await transactionService.createTransaction({
           userId,
           amount: evaluatedAmount,
@@ -439,7 +441,10 @@ export function TransactionForm({
               type="datetime-local"
               id="createdAt"
               value={createdAt}
-              onChange={(e) => { setCreatedAt(e.target.value); setDateModified(true); }}
+              onChange={(e) => {
+                setCreatedAt(e.target.value);
+                setDateModified(true);
+              }}
               disabled={isSubmitting}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
               style={{ fontSize: "16px" }}
@@ -450,7 +455,10 @@ export function TransactionForm({
             type="datetime-local"
             id="createdAt"
             value={createdAt}
-            onChange={(e) => setCreatedAt(e.target.value)}
+            onChange={(e) => {
+              setCreatedAt(e.target.value);
+              setDateModified(true);
+            }}
             disabled={isSubmitting}
             className="w-full min-h-[44px] rounded-xl border bg-white py-3 px-4 text-base text-gray-900 dark:bg-gray-800 dark:text-gray-200 border-gray-400 dark:border-gray-600 hover:border-black dark:hover:border-gray-400 focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
             style={{ fontSize: "16px" }}
