@@ -44,19 +44,10 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
     undefined
   );
   const [isAllTime, setIsAllTime] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [earliestYearMonth, setEarliestYearMonth] = useState<
     { year: number; month: number } | null | undefined
   >(undefined);
   const [categoryData, setCategoryData] = useState<CategoryAggregation[] | undefined>(undefined);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDarkMode(mediaQuery.matches);
-    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -204,7 +195,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
         category: getCategoryLabel(item),
         fill: COLORS[index % COLORS.length],
       }));
-  }, [categoryData, getCategoryLabel, isDarkMode]);
+  }, [categoryData, getCategoryLabel]);
 
   const totalAmount = chartData.reduce((sum, item) => sum + item.total, 0);
   const isLoading =

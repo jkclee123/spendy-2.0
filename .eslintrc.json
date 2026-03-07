@@ -4,7 +4,7 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "react-hooks"],
   "root": true,
   "env": {
     "browser": true,
@@ -17,6 +17,7 @@
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "prefer-const": "error",
-    "no-console": "warn"
+    "no-console": "warn",
+    "react-hooks/exhaustive-deps": "error"
   }
 }

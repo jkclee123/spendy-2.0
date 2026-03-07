@@ -119,10 +119,13 @@ Deno.serve(async (req: Request) => {
 
   const categoryName = typeof body.category === "string" ? body.category.trim() : null;
   if (!categoryName) {
-    return new Response(JSON.stringify({ error: "category is required and must be a non-empty string" }), {
-      status: 400,
-      headers: rateLimitHeaders,
-    });
+    return new Response(
+      JSON.stringify({ error: "category is required and must be a non-empty string" }),
+      {
+        status: 400,
+        headers: rateLimitHeaders,
+      }
+    );
   }
 
   const name = typeof body.name === "string" ? body.name.trim() : null;
@@ -153,7 +156,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Create transaction via RPC
-  const { data: transaction, error: txError } = await supabase.rpc("create_transaction_from_web", {
+  const { error: txError } = await supabase.rpc("create_transaction_from_web", {
     p_user_id: userId,
     p_amount: amount,
     p_name: name,
@@ -170,8 +173,8 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  return new Response(
-    JSON.stringify({ success: true }),
-    { status: 201, headers: rateLimitHeaders }
-  );
+  return new Response(JSON.stringify({ success: true }), {
+    status: 201,
+    headers: rateLimitHeaders,
+  });
 });
