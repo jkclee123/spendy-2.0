@@ -21,6 +21,14 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  .no-spinners::-webkit-inner-spin-button,
+  .no-spinners::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinners {
+    -moz-appearance: textfield;
+  }
 }
 
 :root {
