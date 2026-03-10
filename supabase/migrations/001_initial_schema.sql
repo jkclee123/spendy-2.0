@@ -61,9 +61,3 @@ CREATE INDEX idx_aggregates_user_id_year_month_type ON public.aggregates(user_id
 CREATE INDEX idx_aggregates_user_id_category_id ON public.aggregates(user_id, category_id);
 CREATE INDEX idx_aggregates_category_id ON public.aggregates(category_id);
 
--- Files table (for iOS shortcut downloads)
-CREATE TABLE public.files (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  url text NOT NULL
-);

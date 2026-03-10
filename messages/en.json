@@ -71,9 +71,7 @@
     "iosShortcut": {
       "title": "iPhone API Shortcut",
       "description": "Download this shortcut, paste in your API token to quickly add transactions",
-      "downloadButton": "Download iPhone Shortcut",
-      "downloadSuccess": "Download started",
-      "downloadError": "Failed to download"
+      "downloadButton": "Download iPhone Shortcut"
     }
   },
   "categories": {

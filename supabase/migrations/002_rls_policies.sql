@@ -3,7 +3,6 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.aggregates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
 
 -- Users: can only read/update their own row
 CREATE POLICY "users_select_own" ON public.users
@@ -50,7 +49,3 @@ CREATE POLICY "aggregates_update_own" ON public.aggregates
 
 CREATE POLICY "aggregates_delete_own" ON public.aggregates
   FOR DELETE USING (user_id = (select auth.uid()));
-
--- Files: public read access
-CREATE POLICY "files_select_public" ON public.files
-  FOR SELECT USING (true);

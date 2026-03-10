@@ -71,9 +71,7 @@
     "iosShortcut": {
       "title": "iPhone API 捷徑",
       "description": "下載捷徑，貼上 API 密鑰，使用捷徑快速新增記錄",
-      "downloadButton": "下載 iPhone 捷徑",
-      "downloadSuccess": "下載已開始",
-      "downloadError": "下載失敗"
+      "downloadButton": "下載 iPhone 捷徑"
     }
   },
   "categories": {
