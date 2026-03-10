@@ -6,7 +6,10 @@ export function IosShortcutDownload() {
   const { t, i18n } = useTranslation("settings");
 
   const isZhHK = i18n.language === "zh-HK";
-  const href = isZhHK ? "/shortcuts/spendy 捷徑.shortcut" : "/shortcuts/spendy shortcut.shortcut";
+  const href = isZhHK
+    ? "/shortcuts/spendy-shortcut-zh.shortcut"
+    : "/shortcuts/spendy-shortcut-en.shortcut";
+  const downloadName = isZhHK ? "spendy-shortcut-zh.shortcut" : "spendy-shortcut-en.shortcut";
 
   return (
     <Card>
@@ -18,6 +21,7 @@ export function IosShortcutDownload() {
 
         <a
           href={href}
+          download={downloadName}
           className="inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus:outline-none px-3 py-1.5 text-sm min-h-[36px] w-full border border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-black hover:text-black dark:hover:border-gray-400 dark:hover:text-white"
         >
           <Download className="h-4 w-4" />
