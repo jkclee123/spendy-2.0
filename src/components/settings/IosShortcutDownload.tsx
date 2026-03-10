@@ -9,7 +9,7 @@ export function IosShortcutDownload() {
   const href = isZhHK
     ? "/shortcuts/spendy-shortcut-zh.shortcut"
     : "/shortcuts/spendy-shortcut-en.shortcut";
-  const downloadName = isZhHK ? "spendy-shortcut-zh3.shortcut" : "spendy-shortcut-en3.shortcut";
+  const downloadName = isZhHK ? "spendy-shortcut-zh.shortcut" : "spendy-shortcut-en.shortcut";
 
   return (
     <Card>
