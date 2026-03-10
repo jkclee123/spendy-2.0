@@ -3,8 +3,7 @@
     {
       "source": "/shortcuts/(.*)\\.shortcut",
       "headers": [
-        { "key": "Content-Type", "value": "application/octet-stream" },
-        { "key": "Content-Disposition", "value": "attachment" }
+        { "key": "Content-Type", "value": "application/x-apple-shortcut" }
       ]
     }
   ],
