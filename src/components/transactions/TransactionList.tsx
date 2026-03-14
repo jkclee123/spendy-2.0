@@ -115,11 +115,18 @@ export function TransactionList({
   const [isDeleting, setIsDeleting] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
 
-  // Reconnect on tab visibility
+  // Reconnect on tab visibility (only if hidden for >30s)
   useEffect(() => {
+    let hiddenAt: number | null = null;
+    const STALE_THRESHOLD_MS = 30_000;
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        setReconnectKey((k) => k + 1);
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+      } else if (document.visibilityState === "visible") {
+        if (hiddenAt && Date.now() - hiddenAt > STALE_THRESHOLD_MS) {
+          setReconnectKey((k) => k + 1);
+        }
+        hiddenAt = null;
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);

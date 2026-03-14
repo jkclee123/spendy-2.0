@@ -40,7 +40,13 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <LanguageProvider>
-          <Suspense fallback={null}>
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-accent-500 dark:border-gray-600 dark:border-t-accent-400" />
+              </div>
+            }
+          >
             <Routes>
               <Route path="/" element={<RootPage />} />
               <Route path="/login" element={<LoginPage />} />

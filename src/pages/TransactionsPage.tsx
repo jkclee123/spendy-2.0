@@ -2,9 +2,6 @@ import { useCallback, useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
-import { Card, CardContent } from "@/components/ui/Card";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TransactionList } from "@/components/transactions/TransactionList";
 import {
@@ -29,7 +26,6 @@ export function TransactionsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<UserCategory[]>([]);
-  const [dbUser, setDbUser] = useState<{ id: string } | null | undefined>(undefined);
 
   const [filters, setFilters] = useState<TransactionFiltersState>({
     type: "all",
@@ -51,17 +47,9 @@ export function TransactionsPage() {
     endDate?: number;
   }>({});
 
-  // Fetch user from DB and categories
+  // Fetch categories
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("users")
-      .select("id")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        setDbUser(data);
-      });
     categoryService
       .listActiveByUser(user.id)
       .then(setCategories)
@@ -151,36 +139,11 @@ export function TransactionsPage() {
     setAppliedFilters({});
   }, [navigate]);
 
-  const isLoading = dbUser === undefined;
   const hasActiveFilters = useMemo(() => {
     return Object.values(appliedFilters).some((v) => v !== undefined);
   }, [appliedFilters]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!dbUser || !user) {
-    return (
-      <Card>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-              <span className="text-2xl">⚠️</span>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-200">User not found</h3>
-            <p className="mt-2 max-w-sm text-sm text-gray-500 dark:text-gray-400">
-              Please try logging out and logging back in.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!user) return null;
 
   return (
     <div className="space-y-4">
