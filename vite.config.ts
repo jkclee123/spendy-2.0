@@ -47,17 +47,7 @@ export default defineConfig({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/shortcuts\//],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api",
-              networkTimeoutSeconds: 3,
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-        ],
+        runtimeCaching: [],
       },
     }),
   ],
