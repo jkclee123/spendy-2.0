@@ -54,6 +54,7 @@ export default defineConfig({
             options: {
               cacheName: "supabase-api",
               expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
+              broadcastUpdate: { options: {} },
             },
           },
         ],

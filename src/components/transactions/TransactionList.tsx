@@ -115,18 +115,11 @@ export function TransactionList({
   const [isDeleting, setIsDeleting] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
 
-  // Reconnect on tab visibility (only if hidden for >30s)
+  // Reconnect on tab visibility
   useEffect(() => {
-    let hiddenAt: number | null = null;
-    const STALE_THRESHOLD_MS = 30_000;
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        hiddenAt = Date.now();
-      } else if (document.visibilityState === "visible") {
-        if (hiddenAt && Date.now() - hiddenAt > STALE_THRESHOLD_MS) {
-          setReconnectKey((k) => k + 1);
-        }
-        hiddenAt = null;
+      if (document.visibilityState === "visible") {
+        setReconnectKey((k) => k + 1);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -164,6 +157,25 @@ export function TransactionList({
     },
     [userId, type, nameSearch, category, startDate, endDate, minAmount, maxAmount]
   );
+
+  // Listen for service worker cache updates (stale-while-revalidate pattern)
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+
+    const channel = new BroadcastChannel("workbox-broadcast-update");
+    const handleMessage = (event: MessageEvent) => {
+      const { type: msgType, payload } = event.data || {};
+      if (msgType === "CACHE_UPDATED" && payload?.updatedURL?.includes("/rest/v1/transactions")) {
+        fetchTransactions(0, false);
+      }
+    };
+
+    channel.addEventListener("message", handleMessage);
+    return () => {
+      channel.removeEventListener("message", handleMessage);
+      channel.close();
+    };
+  }, [fetchTransactions]);
 
   // Initial load and refetch when filters change
   useEffect(() => {
