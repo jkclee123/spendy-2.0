@@ -89,6 +89,55 @@ function groupTransactionsByDate(
   return grouped;
 }
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(userId: string): string {
+  return `spendy:txn-cache:${userId}`;
+}
+
+function readCache(userId: string): { data: TransactionWithCategory[]; hasMore: boolean } | null {
+  try {
+    const raw = sessionStorage.getItem(getCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.timestamp > CACHE_TTL_MS) return null;
+    return { data: parsed.data, hasMore: parsed.hasMore };
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(userId: string, data: TransactionWithCategory[], hasMore: boolean): void {
+  try {
+    sessionStorage.setItem(
+      getCacheKey(userId),
+      JSON.stringify({ data, hasMore, timestamp: Date.now() })
+    );
+  } catch {
+    // sessionStorage full — degrade silently
+  }
+}
+
+function clearCache(userId: string): void {
+  try {
+    sessionStorage.removeItem(getCacheKey(userId));
+  } catch {
+    // ignore
+  }
+}
+
+function hasActiveFilters(filters: Filters): boolean {
+  return !!(
+    filters.type ||
+    filters.nameSearch ||
+    filters.category ||
+    filters.minAmount !== undefined ||
+    filters.maxAmount !== undefined ||
+    filters.startDate !== undefined ||
+    filters.endDate !== undefined
+  );
+}
+
 export function TransactionList({
   userId,
   onTransactionClick,
@@ -150,6 +199,22 @@ export function TransactionList({
         }
         setHasMore(result.hasMore);
         setOffset(result.nextOffset);
+
+        // Cache unfiltered first page
+        if (
+          currentOffset === 0 &&
+          !hasActiveFilters({
+            type,
+            nameSearch,
+            category,
+            minAmount,
+            maxAmount,
+            startDate,
+            endDate,
+          })
+        ) {
+          writeCache(userId, result.data, result.hasMore);
+        }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error("Failed to fetch transactions:", error);
@@ -160,10 +225,44 @@ export function TransactionList({
 
   // Initial load and refetch when filters change
   useEffect(() => {
-    setIsLoading(true);
     setOffset(0);
+    const filtersActive = hasActiveFilters({
+      type,
+      nameSearch,
+      category,
+      minAmount,
+      maxAmount,
+      startDate,
+      endDate,
+    });
+
+    if (!filtersActive) {
+      const cached = readCache(userId);
+      if (cached) {
+        setTransactions(cached.data);
+        setHasMore(cached.hasMore);
+        setOffset(cached.data.length);
+        setIsLoading(false);
+        // Silently refresh in background (no spinner)
+        fetchTransactions(0, false);
+        return;
+      }
+    }
+
+    setIsLoading(true);
     fetchTransactions(0, false).finally(() => setIsLoading(false));
-  }, [fetchTransactions, reconnectKey]);
+  }, [
+    fetchTransactions,
+    reconnectKey,
+    userId,
+    type,
+    nameSearch,
+    category,
+    minAmount,
+    maxAmount,
+    startDate,
+    endDate,
+  ]);
 
   // Realtime subscription
   useEffect(() => {
@@ -188,6 +287,7 @@ export function TransactionList({
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
+          clearCache(userId);
           if (payload.eventType === "INSERT") {
             const newTx = await transactionService.getTransactionById(payload.new.id as string);
             if (newTx && matchesFilters(newTx, filters)) {
@@ -237,6 +337,7 @@ export function TransactionList({
     setIsDeleting(true);
     try {
       await transactionService.deleteTransaction({ id: deleteTarget.id, userId });
+      clearCache(userId);
       setTransactions((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       setDeleteTarget(null);
       showToast(t("successMessages.deleted"), "success");
