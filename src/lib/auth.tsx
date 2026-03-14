@@ -62,6 +62,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOutHandler = async () => {
+    // Clear app caches to prevent data leaking to another user
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("spendy:txn-cache:") || key.startsWith("spendy:cat-cache:"))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
     await supabase.auth.signOut();
   };
 

@@ -89,7 +89,7 @@ function groupTransactionsByDate(
   return grouped;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function getCacheKey(userId: string): string {
   return `spendy:txn-cache:${userId}`;
@@ -97,7 +97,7 @@ function getCacheKey(userId: string): string {
 
 function readCache(userId: string): { data: TransactionWithCategory[]; hasMore: boolean } | null {
   try {
-    const raw = sessionStorage.getItem(getCacheKey(userId));
+    const raw = localStorage.getItem(getCacheKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (Date.now() - parsed.timestamp > CACHE_TTL_MS) return null;
@@ -109,18 +109,18 @@ function readCache(userId: string): { data: TransactionWithCategory[]; hasMore: 
 
 function writeCache(userId: string, data: TransactionWithCategory[], hasMore: boolean): void {
   try {
-    sessionStorage.setItem(
+    localStorage.setItem(
       getCacheKey(userId),
       JSON.stringify({ data, hasMore, timestamp: Date.now() })
     );
   } catch {
-    // sessionStorage full — degrade silently
+    // localStorage full — degrade silently
   }
 }
 
 function clearCache(userId: string): void {
   try {
-    sessionStorage.removeItem(getCacheKey(userId));
+    localStorage.removeItem(getCacheKey(userId));
   } catch {
     // ignore
   }

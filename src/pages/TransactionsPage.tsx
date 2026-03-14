@@ -11,6 +11,32 @@ import {
 import type { Transaction, UserCategory } from "@/types";
 import * as categoryService from "@/lib/services/categories";
 
+const CAT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function getCatCacheKey(userId: string): string {
+  return `spendy:cat-cache:${userId}`;
+}
+
+function readCatCache(userId: string): UserCategory[] | null {
+  try {
+    const raw = localStorage.getItem(getCatCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.timestamp > CAT_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeCatCache(userId: string, data: UserCategory[]): void {
+  try {
+    localStorage.setItem(getCatCacheKey(userId), JSON.stringify({ data, timestamp: Date.now() }));
+  } catch {
+    // localStorage full — degrade silently
+  }
+}
+
 function dateToTimestamp(dateStr: string, isEndDate: boolean): number | undefined {
   if (!dateStr) return undefined;
   const parts = dateStr.split("-");
@@ -47,12 +73,19 @@ export function TransactionsPage() {
     endDate?: number;
   }>({});
 
-  // Fetch categories
+  // Fetch categories with localStorage cache
   useEffect(() => {
     if (!user) return;
+    const cached = readCatCache(user.id);
+    if (cached) {
+      setCategories(cached);
+    }
     categoryService
       .listActiveByUser(user.id)
-      .then(setCategories)
+      .then((fresh) => {
+        setCategories(fresh);
+        writeCatCache(user.id, fresh);
+      })
       .catch(() => {});
   }, [user]);
 
