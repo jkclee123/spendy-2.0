@@ -89,8 +89,6 @@ function groupTransactionsByDate(
   return grouped;
 }
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
 function getCacheKey(userId: string): string {
   return `spendy:txn-cache:${userId}`;
 }
@@ -100,7 +98,6 @@ function readCache(userId: string): { data: TransactionWithCategory[]; hasMore: 
     const raw = localStorage.getItem(getCacheKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.timestamp > CACHE_TTL_MS) return null;
     return { data: parsed.data, hasMore: parsed.hasMore };
   } catch {
     return null;

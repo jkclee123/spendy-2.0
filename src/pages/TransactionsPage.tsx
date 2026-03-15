@@ -11,8 +11,6 @@ import {
 import type { Transaction, UserCategory } from "@/types";
 import * as categoryService from "@/lib/services/categories";
 
-const CAT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
 function getCatCacheKey(userId: string): string {
   return `spendy:cat-cache:${userId}`;
 }
@@ -22,7 +20,6 @@ function readCatCache(userId: string): UserCategory[] | null {
     const raw = localStorage.getItem(getCatCacheKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.timestamp > CAT_CACHE_TTL_MS) return null;
     return parsed.data;
   } catch {
     return null;
