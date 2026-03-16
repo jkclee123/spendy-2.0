@@ -245,7 +245,7 @@ export function TransactionForm({
       )}
 
       {/* Type Selector */}
-      <div className="flex rounded-lg overflow-hidden border border-gray-400 dark:border-gray-500 hover:border-black dark:hover:border-gray-400">
+      <div className="flex rounded-full bg-gray-200 dark:bg-gray-700 p-1">
         <button
           type="button"
           onClick={() => {
@@ -253,7 +253,7 @@ export function TransactionForm({
             if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
           }}
           disabled={isSubmitting}
-          className={`flex-1 py-2.5 text-sm font-medium transition-colors duration-200 ${type === "expense" ? "bg-black text-gray-50 dark:bg-white dark:text-gray-950" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"} disabled:cursor-not-allowed disabled:opacity-20`}
+          className={`flex-1 py-2 text-sm rounded-full transition-all duration-200 ${type === "expense" ? "bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-gray-100 font-medium" : "text-gray-500 dark:text-gray-400"} disabled:cursor-not-allowed disabled:opacity-20`}
         >
           {t("expense")}
         </button>
@@ -264,7 +264,7 @@ export function TransactionForm({
             if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
           }}
           disabled={isSubmitting}
-          className={`flex-1 py-2.5 text-sm font-medium transition-colors duration-200 ${type === "income" ? "bg-black text-gray-50 dark:bg-white dark:text-gray-950" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white"} disabled:cursor-not-allowed disabled:opacity-20`}
+          className={`flex-1 py-2 text-sm rounded-full transition-all duration-200 ${type === "income" ? "bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-gray-100 font-medium" : "text-gray-500 dark:text-gray-400"} disabled:cursor-not-allowed disabled:opacity-20`}
         >
           {t("income")}
         </button>
