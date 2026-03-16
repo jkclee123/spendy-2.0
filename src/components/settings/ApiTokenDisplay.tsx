@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, RefreshCw } from "lucide-react";
+import { Check, Copy, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +33,7 @@ export function ApiTokenDisplay({ userId }: ApiTokenDisplayProps) {
   const [apiToken, setApiToken] = useState<string | null>(null);
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -48,12 +49,9 @@ export function ApiTokenDisplay({ userId }: ApiTokenDisplayProps) {
 
   const handleCopyToken = async () => {
     if (!apiToken) return;
-    try {
-      await navigator.clipboard.writeText(apiToken);
-      showToast(t("apiToken.copySuccess"), "success");
-    } catch {
-      showToast(t("apiToken.copyError"), "error");
-    }
+    await navigator.clipboard.writeText(apiToken);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRegenerate = async () => {
@@ -103,7 +101,11 @@ export function ApiTokenDisplay({ userId }: ApiTokenDisplayProps) {
                 disabled={!apiToken}
                 aria-label={t("apiToken.copyToken")}
               >
-                <Copy className="h-4 w-4" />
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
