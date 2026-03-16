@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useLanguageReady } from "@/lib/LanguageProvider";
 
 interface AuthContextValue {
   user: SupabaseUser | null;
@@ -95,6 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
  */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading, signOut } = useAuth();
+  const { userExists } = useLanguageReady();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,18 +107,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }, [user, isLoading, navigate, location]);
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("users")
-      .select("id")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data === null) {
-          signOut();
-        }
-      });
-  }, [user, signOut]);
+    if (userExists === false) {
+      signOut();
+    }
+  }, [userExists, signOut]);
 
   if (isLoading) {
     return null;

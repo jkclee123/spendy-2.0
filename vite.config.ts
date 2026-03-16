@@ -60,6 +60,21 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          transactions: [
+            "./src/pages/TransactionsPage.tsx",
+            "./src/pages/TransactionCreatePage.tsx",
+            "./src/pages/TransactionUpdatePage.tsx",
+            "./src/components/transactions/TransactionList.tsx",
+            "./src/components/transactions/TransactionFilters.tsx",
+          ],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

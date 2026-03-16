@@ -7,9 +7,13 @@ import { ToastProvider } from "@/components/ui/Toast";
 
 interface LanguageReadyContextValue {
   isLanguageReady: boolean;
+  userExists: boolean | null;
 }
 
-const LanguageReadyContext = createContext<LanguageReadyContextValue>({ isLanguageReady: false });
+const LanguageReadyContext = createContext<LanguageReadyContextValue>({
+  isLanguageReady: false,
+  userExists: null,
+});
 
 export function useLanguageReady() {
   return useContext(LanguageReadyContext);
@@ -27,16 +31,20 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const { user } = useAuth();
   const hasCachedLang = !!localStorage.getItem("i18nextLng");
   const [isLanguageReady, setIsLanguageReady] = useState(hasCachedLang);
+  const [userExists, setUserExists] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function syncLanguage() {
       if (!user) {
         setIsLanguageReady(true);
+        setUserExists(null);
         return;
       }
 
-      // Fetch user's language preference from Supabase
-      const { data } = await supabase.from("users").select("lang").eq("id", user.id).single();
+      // Fetch user's language preference and existence in a single query
+      const { data } = await supabase.from("users").select("id, lang").eq("id", user.id).single();
+
+      setUserExists(data !== null);
 
       const raw = data?.lang;
       const isValidNonSystem =
@@ -57,7 +65,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   }, [user, i18n]);
 
   return (
-    <LanguageReadyContext.Provider value={{ isLanguageReady }}>
+    <LanguageReadyContext.Provider value={{ isLanguageReady, userExists }}>
       <ToastProvider>{children}</ToastProvider>
     </LanguageReadyContext.Provider>
   );
