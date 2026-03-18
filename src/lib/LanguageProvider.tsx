@@ -50,6 +50,7 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const { i18n } = useTranslation();
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [userPreference, setUserPref] = useState<"system" | "en" | "zh-HK">("system");
 
@@ -70,13 +71,13 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   useEffect(() => {
     async function syncLanguage() {
-      if (!user) {
+      if (!userId) {
         setUserExists(null);
         return;
       }
 
       // Fetch user's language preference and existence in a single query
-      const { data } = await supabase.from("users").select("id, lang").eq("id", user.id).single();
+      const { data } = await supabase.from("users").select("id, lang").eq("id", userId).single();
 
       setUserExists(data !== null);
 
@@ -94,14 +95,14 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       })();
 
       // Update cache and language if different from current
-      writeLangCache(user.id, raw ?? "system");
+      writeLangCache(userId, raw ?? "system");
       if (i18n.language !== resolvedLang) {
         await i18n.changeLanguage(resolvedLang);
       }
     }
 
     syncLanguage();
-  }, [user, i18n]);
+  }, [userId, i18n]);
 
   const lang = useMemo<"en" | "zh-HK">(() => {
     if (userPreference === "system") return detectBrowserLanguage();
@@ -117,15 +118,15 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   const setUserPreference = useCallback(
     async (newLang: "system" | "en" | "zh-HK") => {
-      if (!user) throw new Error("User not found");
+      if (!userId) throw new Error("User not found");
       if (!VALID_LANG_VALUES.includes(newLang)) throw new Error("Invalid language");
 
-      await supabase.from("users").update({ lang: newLang }).eq("id", user.id);
+      await supabase.from("users").update({ lang: newLang }).eq("id", userId);
 
-      writeLangCache(user.id, newLang);
+      writeLangCache(userId, newLang);
       setUserPref(newLang);
     },
-    [user]
+    [userId]
   );
 
   return (
