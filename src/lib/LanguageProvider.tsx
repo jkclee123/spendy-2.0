@@ -1,4 +1,12 @@
-import { ReactNode, createContext, useContext, useEffect, useState } from "react";
+import {
+  ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -9,11 +17,23 @@ import { ToastProvider } from "@/components/ui/Toast";
 interface LanguageReadyContextValue {
   isLanguageReady: boolean;
   userExists: boolean | null;
+  lang: "en" | "zh-HK";
+  userPreference: "system" | "en" | "zh-HK";
+  setUserPreference: (lang: "system" | "en" | "zh-HK") => Promise<void>;
+}
+
+function detectBrowserLanguage(): "en" | "zh-HK" {
+  const browserLang = navigator.language || "en";
+  if (browserLang.startsWith("zh")) return "zh-HK";
+  return "en";
 }
 
 const LanguageReadyContext = createContext<LanguageReadyContextValue>({
   isLanguageReady: false,
   userExists: null,
+  lang: detectBrowserLanguage(),
+  userPreference: "system",
+  setUserPreference: async () => {},
 });
 
 export function useLanguageReady() {
@@ -31,6 +51,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const { i18n } = useTranslation();
   const { user } = useAuth();
   const [userExists, setUserExists] = useState<boolean | null>(null);
+  const [userPreference, setUserPref] = useState<"system" | "en" | "zh-HK">("system");
 
   // Apply cached language synchronously on first render
   const [isLanguageReady] = useState(() => {
@@ -60,12 +81,14 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       setUserExists(data !== null);
 
       const raw = data?.lang;
+      const validated =
+        raw && VALID_LANG_VALUES.includes(raw as (typeof VALID_LANG_VALUES)[number])
+          ? (raw as "system" | "en" | "zh-HK")
+          : "system";
+      setUserPref(validated);
+
       const resolvedLang = (() => {
-        const isValidNonSystem =
-          raw &&
-          raw !== "system" &&
-          VALID_LANG_VALUES.includes(raw as (typeof VALID_LANG_VALUES)[number]);
-        if (isValidNonSystem) return raw;
+        if (validated !== "system") return validated as "en" | "zh-HK";
         const browserLang = navigator.language;
         return browserLang.startsWith("zh") ? "zh-HK" : "en";
       })();
@@ -80,8 +103,35 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     syncLanguage();
   }, [user, i18n]);
 
+  const lang = useMemo<"en" | "zh-HK">(() => {
+    if (userPreference === "system") return detectBrowserLanguage();
+    return userPreference;
+  }, [userPreference]);
+
+  // Sync i18next when lang changes (e.g. after setUserPreference)
+  useEffect(() => {
+    if (isLanguageReady && i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
+  }, [lang, i18n, isLanguageReady]);
+
+  const setUserPreference = useCallback(
+    async (newLang: "system" | "en" | "zh-HK") => {
+      if (!user) throw new Error("User not found");
+      if (!VALID_LANG_VALUES.includes(newLang)) throw new Error("Invalid language");
+
+      await supabase.from("users").update({ lang: newLang }).eq("id", user.id);
+
+      writeLangCache(user.id, newLang);
+      setUserPref(newLang);
+    },
+    [user]
+  );
+
   return (
-    <LanguageReadyContext.Provider value={{ isLanguageReady, userExists }}>
+    <LanguageReadyContext.Provider
+      value={{ isLanguageReady, userExists, lang, userPreference, setUserPreference }}
+    >
       <ToastProvider>{children}</ToastProvider>
     </LanguageReadyContext.Provider>
   );
