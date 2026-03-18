@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { VALID_LANG_VALUES } from "@/hooks/useLanguage";
+import { readLangCache, writeLangCache } from "@/lib/langCache";
 import { ToastProvider } from "@/components/ui/Toast";
 
 interface LanguageReadyContextValue {
@@ -29,14 +30,26 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const { i18n } = useTranslation();
   const { user } = useAuth();
-  const hasCachedLang = !!localStorage.getItem("i18nextLng");
-  const [isLanguageReady, setIsLanguageReady] = useState(hasCachedLang);
   const [userExists, setUserExists] = useState<boolean | null>(null);
+
+  // Apply cached language synchronously on first render
+  const [isLanguageReady] = useState(() => {
+    if (!user) return !!localStorage.getItem("i18nextLng");
+    const cached = readLangCache(user.id);
+    if (
+      cached &&
+      cached !== "system" &&
+      VALID_LANG_VALUES.includes(cached as (typeof VALID_LANG_VALUES)[number])
+    ) {
+      i18n.changeLanguage(cached);
+      return true;
+    }
+    return !!localStorage.getItem("i18nextLng");
+  });
 
   useEffect(() => {
     async function syncLanguage() {
       if (!user) {
-        setIsLanguageReady(true);
         setUserExists(null);
         return;
       }
@@ -47,18 +60,21 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       setUserExists(data !== null);
 
       const raw = data?.lang;
-      const isValidNonSystem =
-        raw &&
-        raw !== "system" &&
-        VALID_LANG_VALUES.includes(raw as (typeof VALID_LANG_VALUES)[number]);
-      if (isValidNonSystem) {
-        await i18n.changeLanguage(raw);
-      } else {
+      const resolvedLang = (() => {
+        const isValidNonSystem =
+          raw &&
+          raw !== "system" &&
+          VALID_LANG_VALUES.includes(raw as (typeof VALID_LANG_VALUES)[number]);
+        if (isValidNonSystem) return raw;
         const browserLang = navigator.language;
-        await i18n.changeLanguage(browserLang.startsWith("zh") ? "zh-HK" : "en");
-      }
+        return browserLang.startsWith("zh") ? "zh-HK" : "en";
+      })();
 
-      setIsLanguageReady(true);
+      // Update cache and language if different from current
+      writeLangCache(user.id, raw ?? "system");
+      if (i18n.language !== resolvedLang) {
+        await i18n.changeLanguage(resolvedLang);
+      }
     }
 
     syncLanguage();

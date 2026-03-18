@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase, getCachedSession } from "@/lib/supabase";
 import { useLanguageReady } from "@/lib/LanguageProvider";
 
 interface AuthContextValue {
@@ -29,19 +29,20 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cached = getCachedSession();
+  const [user, setUser] = useState<SupabaseUser | null>(cached?.user ?? null);
+  const [session, setSession] = useState<Session | null>(cached?.session ?? null);
+  const [isLoading, setIsLoading] = useState(!cached);
 
   useEffect(() => {
-    // Get initial session
+    // Background token refresh — updates state if session changed or expired
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (TOKEN_REFRESHED, SIGNED_OUT, etc.)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -67,7 +68,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith("spendy:txn-cache:") || key.startsWith("spendy:cat-cache:"))) {
+      if (
+        key &&
+        (key.startsWith("spendy:txn-cache:") ||
+          key.startsWith("spendy:cat-cache:") ||
+          key.startsWith("spendy:lang-pref:"))
+      ) {
         keysToRemove.push(key);
       }
     }

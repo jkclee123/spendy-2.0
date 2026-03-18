@@ -2,6 +2,7 @@ import { useCallback, useMemo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { writeLangCache } from "@/lib/langCache";
 
 export const VALID_LANG_VALUES = ["system", "en", "zh-HK"] as const;
 type LangPreference = (typeof VALID_LANG_VALUES)[number];
@@ -66,6 +67,7 @@ export function useLanguage(): LanguageContext {
 
       await supabase.from("users").update({ lang: newLang }).eq("id", user.id);
 
+      writeLangCache(user.id, newLang);
       setUserPref(newLang);
     },
     [user]
