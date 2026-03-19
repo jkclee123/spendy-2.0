@@ -55,18 +55,19 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const [userPreference, setUserPref] = useState<"system" | "en" | "zh-HK">("system");
 
   // Apply cached language synchronously on first render
-  const [isLanguageReady] = useState(() => {
+  const [isLanguageReady, setIsLanguageReady] = useState(() => {
     if (!user) return !!localStorage.getItem("i18nextLng");
     const cached = readLangCache(user.id);
-    if (
-      cached &&
-      cached !== "system" &&
-      VALID_LANG_VALUES.includes(cached as (typeof VALID_LANG_VALUES)[number])
-    ) {
-      i18n.changeLanguage(cached);
+    if (cached && VALID_LANG_VALUES.includes(cached as (typeof VALID_LANG_VALUES)[number])) {
+      if (cached === "system") {
+        i18n.changeLanguage(detectBrowserLanguage());
+      } else {
+        i18n.changeLanguage(cached);
+      }
       return true;
     }
-    return !!localStorage.getItem("i18nextLng");
+    // No cache for this user — block rendering until DB responds
+    return false;
   });
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
       if (i18n.language !== resolvedLang) {
         await i18n.changeLanguage(resolvedLang);
       }
+      setIsLanguageReady(true);
     }
 
     syncLanguage();
