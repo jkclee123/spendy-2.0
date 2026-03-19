@@ -10,29 +10,7 @@ import {
 } from "@/components/transactions/TransactionFilters";
 import type { Transaction, UserCategory } from "@/types";
 import * as categoryService from "@/lib/services/categories";
-
-function getCatCacheKey(userId: string): string {
-  return `spendy:cat-cache:${userId}`;
-}
-
-function readCatCache(userId: string): UserCategory[] | null {
-  try {
-    const raw = localStorage.getItem(getCatCacheKey(userId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed.data;
-  } catch {
-    return null;
-  }
-}
-
-function writeCatCache(userId: string, data: UserCategory[]): void {
-  try {
-    localStorage.setItem(getCatCacheKey(userId), JSON.stringify({ data, timestamp: Date.now() }));
-  } catch {
-    // localStorage full — degrade silently
-  }
-}
+import { readCatCache, writeCatCache } from "@/lib/catCache";
 
 function dateToTimestamp(dateStr: string, isEndDate: boolean): number | undefined {
   if (!dateStr) return undefined;

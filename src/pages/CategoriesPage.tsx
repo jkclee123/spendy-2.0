@@ -10,6 +10,7 @@ import { CategoryEditModal } from "@/components/settings/CategoryEditModal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { UserCategory } from "@/types";
 import * as categoryService from "@/lib/services/categories";
+import { readCatCache, writeCatCache, clearCatCache } from "@/lib/catCache";
 
 export function CategoriesPage() {
   const { t } = useTranslation("categories");
@@ -26,6 +27,7 @@ export function CategoriesPage() {
     try {
       const data = await categoryService.listByUser(user.id);
       setCategories(data);
+      writeCatCache(user.id, data);
     } catch {
       // ignore
     } finally {
@@ -34,8 +36,14 @@ export function CategoriesPage() {
   }, [user]);
 
   useEffect(() => {
+    if (!user) return;
+    const cached = readCatCache(user.id);
+    if (cached) {
+      setCategories(cached);
+      setIsLoading(false);
+    }
     loadCategories();
-  }, [loadCategories]);
+  }, [user, loadCategories]);
 
   const handleCreate = useCallback(() => {
     setEditingCategory(undefined);
@@ -66,6 +74,7 @@ export function CategoriesPage() {
           currentLang: lang,
         });
       }
+      clearCatCache(user.id);
       await loadCategories();
     },
     [user, editingCategory, lang, loadCategories]
@@ -75,6 +84,7 @@ export function CategoriesPage() {
     async (category: UserCategory) => {
       if (!user) return;
       await categoryService.deactivateCategory(category.id, user.id);
+      clearCatCache(user.id);
       await loadCategories();
     },
     [user, loadCategories]
@@ -84,6 +94,7 @@ export function CategoriesPage() {
     async (category: UserCategory) => {
       if (!user) return;
       await categoryService.activateCategory(category.id, user.id);
+      clearCatCache(user.id);
       await loadCategories();
     },
     [user, loadCategories]
