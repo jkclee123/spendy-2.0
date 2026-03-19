@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import * as aggregatesService from "@/lib/services/aggregates";
 import * as categoryService from "@/lib/services/categories";
+import { readCatCache, writeCatCache } from "@/lib/catCache";
 import type { UserCategory, MonthlyIncomeExpenseData } from "@/types";
 
 interface IncomeExpenseTrendChartProps {
@@ -61,9 +62,16 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       .listAvailableTransactionYears(userId)
       .then(setAvailableYears)
       .catch(() => setAvailableYears([]));
+    const cached = readCatCache(userId);
+    if (cached) {
+      setCategories(cached);
+    }
     categoryService
       .listActiveByUser(userId)
-      .then(setCategories)
+      .then((fresh) => {
+        setCategories(fresh);
+        writeCatCache(userId, fresh);
+      })
       .catch(() => setCategories([]));
   }, [userId]);
 
