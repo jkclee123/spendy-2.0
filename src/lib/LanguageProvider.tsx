@@ -52,7 +52,14 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [userExists, setUserExists] = useState<boolean | null>(null);
-  const [userPreference, setUserPref] = useState<"system" | "en" | "zh-HK">("system");
+  const [userPreference, setUserPref] = useState<"system" | "en" | "zh-HK">(() => {
+    if (!user) return "system";
+    const cached = readLangCache(user.id);
+    if (cached && VALID_LANG_VALUES.includes(cached as (typeof VALID_LANG_VALUES)[number])) {
+      return cached as "system" | "en" | "zh-HK";
+    }
+    return "system";
+  });
 
   // i18n.init() already resolved the correct language synchronously,
   // so we only need to wait for DB fetch when there's no cache for this user.
