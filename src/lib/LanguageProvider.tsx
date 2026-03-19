@@ -54,16 +54,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const [userExists, setUserExists] = useState<boolean | null>(null);
   const [userPreference, setUserPref] = useState<"system" | "en" | "zh-HK">("system");
 
-  // Apply cached language synchronously on first render
+  // i18n.init() already resolved the correct language synchronously,
+  // so we only need to wait for DB fetch when there's no cache for this user.
   const [isLanguageReady, setIsLanguageReady] = useState(() => {
-    if (!user) return !!localStorage.getItem("i18nextLng");
+    if (!user) return true;
     const cached = readLangCache(user.id);
     if (cached && VALID_LANG_VALUES.includes(cached as (typeof VALID_LANG_VALUES)[number])) {
-      if (cached === "system") {
-        i18n.changeLanguage(detectBrowserLanguage());
-      } else {
-        i18n.changeLanguage(cached);
-      }
       return true;
     }
     // No cache for this user — block rendering until DB responds
