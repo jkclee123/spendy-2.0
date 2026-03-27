@@ -14,16 +14,16 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.99.2",
+    "@supabase/supabase-js": "^2.100.1",
     "date-fns": "^4.1.0",
-    "i18next": "^25.8.18",
+    "i18next": "^25.10.10",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^0.563.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-i18next": "^15.7.4",
-    "react-router-dom": "^7.13.1",
-    "recharts": "^3.8.0"
+    "react-router-dom": "^7.13.2",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -31,10 +31,10 @@
     "@types/node": "^20.19.37",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
-    "@typescript-eslint/parser": "^8.57.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vitest/ui": "^4.1.0",
+    "@vitest/ui": "^4.1.2",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -47,7 +47,7 @@
     "typescript": "^5.9.3",
     "vite": "^6.4.1",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.2"
   },
   "lint-staged": {
     "**/*.{js,ts,tsx}": [
