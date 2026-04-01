@@ -197,7 +197,3 @@ supabase functions deploy create-transaction
 ## License
 
 [MIT](LICENSE)
-
----
-
-Built with React, Vite, Supabase, and love.
