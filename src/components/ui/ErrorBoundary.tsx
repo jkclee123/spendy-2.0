@@ -1,6 +1,18 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "./Button";
 
+const CHUNK_RELOAD_KEY = "chunk-reload-attempted";
+
+function isChunkLoadError(error: Error): boolean {
+  const message = error.message || "";
+  return (
+    message.includes("Failed to fetch dynamically imported module") ||
+    message.includes("Importing a module script failed") ||
+    message.includes("error loading dynamically imported module") ||
+    error.name === "ChunkLoadError"
+  );
+}
+
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
@@ -27,9 +39,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
     // eslint-disable-next-line no-console
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+
+    if (isChunkLoadError(error)) {
+      if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+        window.location.reload();
+        return;
+      }
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    }
   }
 
   handleReset = (): void => {
@@ -83,6 +103,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       );
     }
 
+    sessionStorage.removeItem(CHUNK_RELOAD_KEY);
     return this.props.children;
   }
 }
