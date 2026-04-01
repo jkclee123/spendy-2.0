@@ -124,12 +124,15 @@ bun test:e2e     # Run Playwright e2e tests
 ### Database Schema
 
 **users** (synced from Supabase Auth via trigger):
+
 - `id`, `email`, `name`, `avatar_url`, `lang`, `api_token`, `created_at`
 
 **user_categories**:
+
 - `id`, `user_id`, `emoji`, `en_name`, `zh_name`, `is_active`, `order`, `created_at`
 
 **transactions**:
+
 - `id`, `user_id`, `name`, `category_id`, `amount`, `type` (`expense` | `income`), `created_at`
 
 Row-level security (RLS) is enabled on all tables — users can only access their own data.
@@ -186,10 +189,10 @@ supabase functions deploy create-transaction
 
 ### Environment Variables for Production
 
-| Variable                       | Description                    |
-| ------------------------------ | ------------------------------ |
-| `VITE_SUPABASE_URL`            | Supabase project URL           |
-| `VITE_SUPABASE_PUBLISHABLE_KEY`| Supabase anon/publishable key  |
+| Variable                        | Description                   |
+| ------------------------------- | ----------------------------- |
+| `VITE_SUPABASE_URL`             | Supabase project URL          |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
 
 ## License
 
