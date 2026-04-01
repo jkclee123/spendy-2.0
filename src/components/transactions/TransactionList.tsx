@@ -160,6 +160,7 @@ export function TransactionList({
   const [deleteTarget, setDeleteTarget] = useState<TransactionWithCategory | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
+  const fetchGenRef = useRef(0);
 
   // Reconnect on tab visibility
   useEffect(() => {
@@ -175,6 +176,7 @@ export function TransactionList({
   // Fetch transactions
   const fetchTransactions = useCallback(
     async (currentOffset: number, append: boolean) => {
+      const gen = ++fetchGenRef.current;
       try {
         const result = await transactionService.listTransactionsPaginated({
           userId,
@@ -188,6 +190,8 @@ export function TransactionList({
           limit: PAGE_SIZE,
           offset: currentOffset,
         });
+
+        if (fetchGenRef.current !== gen) return; // stale response — discard
 
         if (append) {
           setTransactions((prev) => [...prev, ...result.data]);
