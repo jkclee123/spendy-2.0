@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { LanguageSelect } from "@/components/settings/LanguageSelect";
 import { ApiTokenDisplay } from "@/components/settings/ApiTokenDisplay";
 import { IosShortcutDownload } from "@/components/settings/IosShortcutDownload";
+import { LogOut } from "lucide-react";
 
 export function SettingsPage() {
   const { t } = useTranslation("settings");
@@ -50,9 +51,7 @@ export function SettingsPage() {
               <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
                 {user.user_metadata.full_name}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {user.email}
-              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
             </div>
           </div>
         </CardContent>
@@ -64,10 +63,7 @@ export function SettingsPage() {
           <CardTitle>{t("language")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <LanguageSelect
-            value={userPreference}
-            onChange={setUserPreference}
-          />
+          <LanguageSelect value={userPreference} onChange={setUserPreference} />
         </CardContent>
       </Card>
 
@@ -83,6 +79,7 @@ export function SettingsPage() {
         onClick={signOut}
         className="w-full dark:hover:text-red-500 text-red-600 dark:text-red-400 hover:text-red-500"
       >
+        <LogOut className="size-4" />
         {t("signOut")}
       </Button>
     </div>
