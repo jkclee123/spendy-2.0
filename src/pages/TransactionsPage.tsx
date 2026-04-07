@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TransactionList } from "@/components/transactions/TransactionList";
@@ -27,6 +28,7 @@ export function TransactionsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<UserCategory[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
 
   const [filters, setFilters] = useState<TransactionFiltersState>({
     type: "all",
@@ -155,7 +157,12 @@ export function TransactionsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t("title")} />
+      <PageHeader
+        title={t("title")}
+        action={
+          isFetching ? <RefreshCw className="w-4 h-4 text-accent-500 animate-spin" /> : undefined
+        }
+      />
       <div>
         <TransactionFilters
           categories={categories}
@@ -170,6 +177,7 @@ export function TransactionsPage() {
       <TransactionList
         userId={user.id}
         onTransactionClick={handleTransactionClick}
+        onLoadingChange={setIsFetching}
         type={appliedFilters.type}
         nameSearch={appliedFilters.nameSearch}
         category={appliedFilters.category}

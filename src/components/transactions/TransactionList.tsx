@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 interface TransactionListProps {
   userId: string;
   onTransactionClick?: (transaction: TransactionWithCategory) => void;
+  onLoadingChange?: (loading: boolean) => void;
   type?: "expense" | "income";
   nameSearch?: string;
   category?: string;
@@ -138,6 +139,7 @@ function hasActiveFilters(filters: Filters): boolean {
 export function TransactionList({
   userId,
   onTransactionClick,
+  onLoadingChange,
   type,
   nameSearch,
   category,
@@ -161,6 +163,7 @@ export function TransactionList({
   const [isDeleting, setIsDeleting] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
   const fetchGenRef = useRef(0);
+  const fetchCountRef = useRef(0);
 
   // Reconnect on tab visibility
   useEffect(() => {
@@ -177,6 +180,8 @@ export function TransactionList({
   const fetchTransactions = useCallback(
     async (currentOffset: number, append: boolean) => {
       const gen = ++fetchGenRef.current;
+      fetchCountRef.current += 1;
+      if (fetchCountRef.current === 1) onLoadingChange?.(true);
       try {
         const result = await transactionService.listTransactionsPaginated({
           userId,
@@ -219,9 +224,12 @@ export function TransactionList({
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error("Failed to fetch transactions:", error);
+      } finally {
+        fetchCountRef.current -= 1;
+        if (fetchCountRef.current === 0) onLoadingChange?.(false);
       }
     },
-    [userId, type, nameSearch, category, startDate, endDate, minAmount, maxAmount]
+    [userId, type, nameSearch, category, startDate, endDate, minAmount, maxAmount, onLoadingChange]
   );
 
   // Initial load and refetch when filters change
