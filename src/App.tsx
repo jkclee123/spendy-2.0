@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 import { LanguageProvider } from "@/lib/LanguageProvider";
 import { AuthenticatedClientWrapper } from "@/components/layout/AuthenticatedClientWrapper";
@@ -25,6 +25,14 @@ const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage }))
 );
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function AuthenticatedLayout() {
   return (
     <ProtectedRoute>
@@ -38,6 +46,7 @@ function AuthenticatedLayout() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <LanguageProvider>
           <Suspense
