@@ -160,7 +160,9 @@ export function TransactionsPage() {
       <PageHeader
         title={t("title")}
         action={
-          isFetching ? <RefreshCw className="w-4 h-4 text-accent-500 animate-spin" /> : undefined
+          isFetching ? (
+            <RefreshCw className="w-4 h-4 text-accent-500 animate-spin [animation-duration:0.65s]" />
+          ) : undefined
         }
       />
       <div>
