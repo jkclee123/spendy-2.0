@@ -164,11 +164,15 @@ export function TransactionList({
   const [reconnectKey, setReconnectKey] = useState(0);
   const fetchGenRef = useRef(0);
   const fetchCountRef = useRef(0);
+  const channelDroppedRef = useRef(false);
+  const transactionsLenRef = useRef(0);
+  const prevReconnectKeyRef = useRef(0);
 
-  // Reconnect on tab visibility
+  // Reconnect on tab visibility — only if the realtime channel actually dropped
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState !== "visible") return;
+      if (channelDroppedRef.current) {
         setReconnectKey((k) => k + 1);
       }
     };
@@ -176,13 +180,18 @@ export function TransactionList({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
+  useEffect(() => {
+    transactionsLenRef.current = transactions.length;
+  }, [transactions]);
+
   // Fetch transactions
   const fetchTransactions = useCallback(
-    async (currentOffset: number, append: boolean) => {
+    async (currentOffset: number, append: boolean, limitOverride?: number) => {
       const gen = ++fetchGenRef.current;
       fetchCountRef.current += 1;
       if (fetchCountRef.current === 1) onLoadingChange?.(true);
       try {
+        const limit = limitOverride ?? PAGE_SIZE;
         const result = await transactionService.listTransactionsPaginated({
           userId,
           type,
@@ -192,7 +201,7 @@ export function TransactionList({
           endDate,
           minAmount,
           maxAmount,
-          limit: PAGE_SIZE,
+          limit,
           offset: currentOffset,
         });
 
@@ -234,6 +243,16 @@ export function TransactionList({
 
   // Initial load and refetch when filters change
   useEffect(() => {
+    const isReconnect = prevReconnectKeyRef.current !== reconnectKey;
+    prevReconnectKeyRef.current = reconnectKey;
+
+    // On reconnect, refetch the full currently-loaded range so the DOM length —
+    // and therefore the user's scroll position — is preserved.
+    if (isReconnect && transactionsLenRef.current > PAGE_SIZE) {
+      fetchTransactions(0, false, transactionsLenRef.current);
+      return;
+    }
+
     setOffset(0);
     const filtersActive = hasActiveFilters({
       type,
@@ -322,7 +341,13 @@ export function TransactionList({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          channelDroppedRef.current = false;
+        } else if (status === "TIMED_OUT" || status === "CLOSED" || status === "CHANNEL_ERROR") {
+          channelDroppedRef.current = true;
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
