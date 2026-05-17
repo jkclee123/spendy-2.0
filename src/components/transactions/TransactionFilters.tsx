@@ -144,21 +144,6 @@ export function TransactionFilters({
     [filters, onFiltersChange, onAutoApply]
   );
 
-  const handleSelectClick = (e: React.MouseEvent<HTMLSelectElement>) => {
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(display-mode: standalone)").matches &&
-      typeof (e.currentTarget as HTMLSelectElement & { showPicker?: () => void }).showPicker ===
-        "function"
-    ) {
-      try {
-        (e.currentTarget as HTMLSelectElement & { showPicker: () => void }).showPicker();
-      } catch {
-        // showPicker can throw if not user-initiated; ignore.
-      }
-    }
-  };
-
   const handleClear = useCallback(() => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     onFiltersChange({
@@ -232,7 +217,6 @@ export function TransactionFilters({
                 id="filter-type"
                 value={filters.type}
                 onChange={handleTypeChange}
-                onClick={handleSelectClick}
                 className="min-h-[44px] w-full appearance-none rounded-xl border px-3 py-3 text-base transition-colors duration-200 focus:outline-none border-gray-400 hover:border-black dark:border-gray-500 dark:hover:border-gray-400 bg-white text-gray-900 dark:text-gray-200 dark:bg-gray-800"
               >
                 <option value="all">{t("filtersTypeAll")}</option>

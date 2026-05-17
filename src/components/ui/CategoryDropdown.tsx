@@ -36,21 +36,6 @@ export function CategoryDropdown({
     onChange(newValue || undefined);
   };
 
-  const handleClick = (e: React.MouseEvent<HTMLSelectElement>) => {
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(display-mode: standalone)").matches &&
-      typeof (e.currentTarget as HTMLSelectElement & { showPicker?: () => void }).showPicker ===
-        "function"
-    ) {
-      try {
-        (e.currentTarget as HTMLSelectElement & { showPicker: () => void }).showPicker();
-      } catch {
-        // showPicker can throw if not user-initiated; ignore.
-      }
-    }
-  };
-
   const getLocalizedName = (category: UserCategory): string => {
     if (currentLang === "en") return category.en_name || category.zh_name || "Unnamed";
     return category.zh_name || category.en_name || "未命名";
@@ -72,7 +57,6 @@ export function CategoryDropdown({
           id={selectId}
           value={value || ""}
           onChange={handleChange}
-          onClick={handleClick}
           disabled={disabled}
           className={`min-h-[44px] w-full appearance-none rounded-xl border px-4 py-3 text-base transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 text-gray-900 bg-white dark:text-gray-200 dark:bg-gray-800 ${error ? "border-red-500 focus:ring-red-500" : "border-gray-400 hover:border-black dark:border-gray-500 dark:hover:border-gray-400"} ${className}`}
           {...props}
