@@ -2,9 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F3F4F6" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#030712" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" id="theme-color-meta" content="#030712" />
+    <script>
+      (function () {
+        var meta = document.getElementById('theme-color-meta');
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        function apply() { meta.setAttribute('content', mq.matches ? '#030712' : '#F3F4F6'); }
+        apply();
+        mq.addEventListener('change', apply);
+      })();
+    </script>
     <meta name="description" content="Track your spending with ease" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

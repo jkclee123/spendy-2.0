@@ -41,6 +41,21 @@ export function CategorySelect({
     [i18n.language]
   );
 
+  const handleClick = (e: React.MouseEvent<HTMLSelectElement>) => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(display-mode: standalone)").matches &&
+      typeof (e.currentTarget as HTMLSelectElement & { showPicker?: () => void }).showPicker ===
+        "function"
+    ) {
+      try {
+        (e.currentTarget as HTMLSelectElement & { showPicker: () => void }).showPicker();
+      } catch {
+        // showPicker can throw if not user-initiated; ignore.
+      }
+    }
+  };
+
   return (
     <div className="w-full">
       {label && (
@@ -53,6 +68,7 @@ export function CategorySelect({
         <select
           id={selectId}
           value={value}
+          onClick={handleClick}
           className={`min-h-[44px] w-full appearance-none rounded-xl border px-4 py-3 text-base transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${error ? "border-red-500 focus:ring-red-500" : "border-gray-300 hover:border-gray-400"} ${hasValue ? "text-gray-900 bg-white" : "text-gray-500 bg-white"} ${className}`}
           {...props}
         >
