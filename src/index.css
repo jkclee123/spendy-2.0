@@ -37,11 +37,9 @@
   --font-dancing-script: "Dancing Script", cursive;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #030712;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #030712;
+  --foreground: #ededed;
 }
 
 body {

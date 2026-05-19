@@ -27,13 +27,16 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   const { lang } = useLanguage();
   const { t } = useTranslation("charts");
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  );
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDarkMode(mediaQuery.matches);
-    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    const root = document.documentElement;
+    const update = () => setIsDarkMode(root.classList.contains("dark"));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
   }, []);
 
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());

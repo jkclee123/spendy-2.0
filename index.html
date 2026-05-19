@@ -7,10 +7,19 @@
     <script>
       (function () {
         var meta = document.getElementById('theme-color-meta');
+        var root = document.documentElement;
         var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        function apply() { meta.setAttribute('content', mq.matches ? '#030712' : '#F3F4F6'); }
+        function apply() {
+          var dark = mq.matches;
+          root.classList.toggle('dark', dark);
+          meta.setAttribute('content', dark ? '#030712' : '#F3F4F6');
+        }
         apply();
         mq.addEventListener('change', apply);
+        document.addEventListener('visibilitychange', function () {
+          if (!document.hidden) apply();
+        });
+        window.addEventListener('pageshow', apply);
       })();
     </script>
     <meta name="description" content="Track your spending with ease" />
