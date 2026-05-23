@@ -45,6 +45,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
     { year: number; month: number } | null | undefined
   >(undefined);
   const [categoryData, setCategoryData] = useState<CategoryAggregation[] | undefined>(undefined);
+  const [totalIncome, setTotalIncome] = useState<number | undefined>(undefined);
 
   const selectedMonth = useMemo<{ year: number; month: number } | undefined>(() => {
     const catMonth = searchParams.get("catMonth");
@@ -112,6 +113,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   useEffect(() => {
     if (!userId || !dateRangeParams) return;
     setCategoryData(undefined);
+    setTotalIncome(undefined);
     aggregatesService
       .getExpensesByCategory(
         userId,
@@ -122,6 +124,16 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       )
       .then(setCategoryData)
       .catch(() => setCategoryData([]));
+    aggregatesService
+      .getIncomeTotal(
+        userId,
+        dateRangeParams.startYear,
+        dateRangeParams.startMonth,
+        dateRangeParams.endYear,
+        dateRangeParams.endMonth
+      )
+      .then(setTotalIncome)
+      .catch(() => setTotalIncome(0));
   }, [userId, dateRangeParams]);
 
   const availableMonths = useMemo(() => {
@@ -339,12 +351,20 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       {/* Chart */}
       {!isLoading && !isEmpty && (
         <>
-          {/* Total Expenses */}
-          <div className="mb-5 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
-              {formatCurrency(totalAmount)}
-            </p>
+          {/* Total Income & Expenses */}
+          <div className="mb-5 flex items-start justify-center gap-8">
+            <div className="text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalIncome")}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                {formatCurrency(totalIncome ?? 0)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                {formatCurrency(totalAmount)}
+              </p>
+            </div>
           </div>
 
           {/* Horizontal Bar List */}

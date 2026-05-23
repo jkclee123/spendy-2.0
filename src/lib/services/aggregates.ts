@@ -16,6 +16,33 @@ export async function getMonthlyIncomeExpenseTrend(
   return (data ?? []) as MonthlyIncomeExpenseData[];
 }
 
+export async function getIncomeTotal(
+  userId: string,
+  startYear: number,
+  startMonth: number,
+  endYear: number,
+  endMonth: number
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("aggregates")
+    .select("amount, year, month")
+    .eq("user_id", userId)
+    .eq("type", "income")
+    .gte("year", startYear)
+    .lte("year", endYear);
+
+  if (error) throw error;
+  if (!data) return 0;
+  return (data as Array<{ amount: number | string; year: number; month: number }>).reduce(
+    (sum, row) => {
+      if (row.year === startYear && row.month < startMonth) return sum;
+      if (row.year === endYear && row.month > endMonth) return sum;
+      return sum + Number(row.amount);
+    },
+    0
+  );
+}
+
 export async function getExpensesByCategory(
   userId: string,
   startYear: number,
