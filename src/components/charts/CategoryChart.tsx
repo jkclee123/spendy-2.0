@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CategoryAggregation } from "@/types";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -36,18 +36,43 @@ const COLORS = [
 export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps) {
   const { lang } = useLanguage();
   const { t } = useTranslation("charts");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [currentYearMonth, setCurrentYearMonth] = useState<
     { year: number; month: number } | undefined
   >(undefined);
-  const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | undefined>(
-    undefined
-  );
-  const [isAllTime, setIsAllTime] = useState(false);
   const [earliestYearMonth, setEarliestYearMonth] = useState<
     { year: number; month: number } | null | undefined
   >(undefined);
   const [categoryData, setCategoryData] = useState<CategoryAggregation[] | undefined>(undefined);
+  const [totalIncome, setTotalIncome] = useState<number | undefined>(undefined);
+
+  const selectedMonth = useMemo<{ year: number; month: number } | undefined>(() => {
+    const catMonth = searchParams.get("catMonth");
+    if (catMonth) {
+      const [y, m] = catMonth.split("-").map(Number);
+      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+        return { year: y, month: m - 1 };
+      }
+    }
+    return currentYearMonth;
+  }, [searchParams, currentYearMonth]);
+
+  const isAllTime = searchParams.get("catAllTime") === "1";
+
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [k, v] of Object.entries(updates)) {
+          if (v == null) next.delete(k);
+          else next.set(k, v);
+        }
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
 
   useEffect(() => {
     if (!userId) return;
@@ -55,13 +80,10 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       .getCurrentUserYearMonth(userId)
       .then((ym) => {
         setCurrentYearMonth(ym);
-        setSelectedMonth((prev) => prev ?? ym);
       })
       .catch(() => {
         const now = new Date();
-        const fallback = { year: now.getFullYear(), month: now.getMonth() };
-        setCurrentYearMonth(fallback);
-        setSelectedMonth((prev) => prev ?? fallback);
+        setCurrentYearMonth({ year: now.getFullYear(), month: now.getMonth() });
       });
     aggregatesService
       .getEarliestAggregateYearMonth(userId)
@@ -91,6 +113,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   useEffect(() => {
     if (!userId || !dateRangeParams) return;
     setCategoryData(undefined);
+    setTotalIncome(undefined);
     aggregatesService
       .getExpensesByCategory(
         userId,
@@ -101,6 +124,16 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       )
       .then(setCategoryData)
       .catch(() => setCategoryData([]));
+    aggregatesService
+      .getIncomeTotal(
+        userId,
+        dateRangeParams.startYear,
+        dateRangeParams.startMonth,
+        dateRangeParams.endYear,
+        dateRangeParams.endMonth
+      )
+      .then(setTotalIncome)
+      .catch(() => setTotalIncome(0));
   }, [userId, dateRangeParams]);
 
   const availableMonths = useMemo(() => {
@@ -146,34 +179,37 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
     );
   }, [selectedMonth, latestAvailableMonth]);
 
+  const formatMonthParam = useCallback(
+    (year: number, month: number) => `${year}-${String(month + 1).padStart(2, "0")}`,
+    []
+  );
+
   const goToPreviousMonth = useCallback(() => {
-    if (isAtEarliestMonth) return;
-    setSelectedMonth((prev) => {
-      if (!prev) return prev;
-      if (prev.month === 0) return { year: prev.year - 1, month: 11 };
-      return { year: prev.year, month: prev.month - 1 };
-    });
-  }, [isAtEarliestMonth]);
+    if (isAtEarliestMonth || !selectedMonth) return;
+    const newYear = selectedMonth.month === 0 ? selectedMonth.year - 1 : selectedMonth.year;
+    const newMonth = selectedMonth.month === 0 ? 11 : selectedMonth.month - 1;
+    updateParams({ catMonth: formatMonthParam(newYear, newMonth), catAllTime: null });
+  }, [isAtEarliestMonth, selectedMonth, updateParams, formatMonthParam]);
 
   const goToNextMonth = useCallback(() => {
-    if (isAtLatestMonth) return;
-    setSelectedMonth((prev) => {
-      if (!prev) return prev;
-      if (prev.month === 11) return { year: prev.year + 1, month: 0 };
-      return { year: prev.year, month: prev.month + 1 };
-    });
-  }, [isAtLatestMonth]);
+    if (isAtLatestMonth || !selectedMonth) return;
+    const newYear = selectedMonth.month === 11 ? selectedMonth.year + 1 : selectedMonth.year;
+    const newMonth = selectedMonth.month === 11 ? 0 : selectedMonth.month + 1;
+    updateParams({ catMonth: formatMonthParam(newYear, newMonth), catAllTime: null });
+  }, [isAtLatestMonth, selectedMonth, updateParams, formatMonthParam]);
 
-  const handleMonthChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value === "all-time") {
-      setIsAllTime(true);
-    } else if (value) {
-      setIsAllTime(false);
-      const [year, month] = value.split("-").map(Number);
-      setSelectedMonth({ year, month });
-    }
-  }, []);
+  const handleMonthChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const value = e.target.value;
+      if (value === "all-time") {
+        updateParams({ catAllTime: "1" });
+      } else if (value) {
+        const [year, month] = value.split("-").map(Number);
+        updateParams({ catMonth: formatMonthParam(year, month), catAllTime: null });
+      }
+    },
+    [updateParams, formatMonthParam]
+  );
 
   const getCategoryLabel = useCallback(
     (item: CategoryAggregation): string => {
@@ -315,12 +351,20 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       {/* Chart */}
       {!isLoading && !isEmpty && (
         <>
-          {/* Total Expenses */}
-          <div className="mb-5 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
-              {formatCurrency(totalAmount)}
-            </p>
+          {/* Total Income & Expenses */}
+          <div className="mb-5 flex items-start justify-center gap-8">
+            <div className="text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalIncome")}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                {formatCurrency(totalIncome ?? 0)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                {formatCurrency(totalAmount)}
+              </p>
+            </div>
           </div>
 
           {/* Horizontal Bar List */}

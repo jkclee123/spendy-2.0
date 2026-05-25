@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -26,6 +27,7 @@ interface IncomeExpenseTrendChartProps {
 export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpenseTrendChartProps) {
   const { lang } = useLanguage();
   const { t } = useTranslation("charts");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [isDarkMode, setIsDarkMode] = useState(
     () => typeof document !== "undefined" && document.documentElement.classList.contains("dark")
@@ -40,13 +42,35 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, []);
 
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
-
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedExpenseCategoryId, setSelectedExpenseCategoryId] = useState<string | null>(null);
   const [availableYears, setAvailableYears] = useState<number[] | null>(null);
   const [categories, setCategories] = useState<UserCategory[] | undefined>(undefined);
   const [monthlyData, setMonthlyData] = useState<MonthlyIncomeExpenseData[] | undefined>(undefined);
   const [isRefetchingMonthly, setIsRefetchingMonthly] = useState(false);
+
+  const selectedYear = useMemo<number>(() => {
+    const param = searchParams.get("trendYear");
+    if (param) {
+      const parsed = parseInt(param, 10);
+      if (!isNaN(parsed)) return parsed;
+    }
+    return currentYear;
+  }, [searchParams, currentYear]);
+
+  const selectedExpenseCategoryId = searchParams.get("trendCat") || null;
+
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [k, v] of Object.entries(updates)) {
+          if (v == null) next.delete(k);
+          else next.set(k, v);
+        }
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
 
   useEffect(() => {
     if (!userId) return;
@@ -54,12 +78,9 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       .getCurrentUserYearMonth(userId)
       .then(({ year }) => {
         setCurrentYear(year);
-        setSelectedYear((prev) => prev ?? year);
       })
       .catch(() => {
-        const year = new Date().getFullYear();
-        setCurrentYear(year);
-        setSelectedYear((prev) => prev ?? year);
+        setCurrentYear(new Date().getFullYear());
       });
     aggregatesService
       .listAvailableTransactionYears(userId)
@@ -79,7 +100,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, [userId]);
 
   useEffect(() => {
-    if (!userId || selectedYear === null) return;
+    if (!userId) return;
     setIsRefetchingMonthly(true);
     aggregatesService
       .getMonthlyIncomeExpenseTrend(userId, selectedYear, selectedExpenseCategoryId)
@@ -93,9 +114,12 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       });
   }, [userId, selectedYear, selectedExpenseCategoryId]);
 
-  const handleYearChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedYear(parseInt(e.target.value, 10));
-  }, []);
+  const handleYearChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      updateParams({ trendYear: String(parseInt(e.target.value, 10)) });
+    },
+    [updateParams]
+  );
 
   const earliestAvailableYear = useMemo(() => {
     if (!availableYears || availableYears.length === 0) return currentYear;
@@ -108,28 +132,31 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, [availableYears, currentYear]);
 
   const isAtEarliestYear = useMemo(
-    () => selectedYear === null || selectedYear <= earliestAvailableYear,
+    () => selectedYear <= earliestAvailableYear,
     [selectedYear, earliestAvailableYear]
   );
   const isAtLatestYear = useMemo(
-    () => selectedYear === null || selectedYear >= latestAvailableYear,
+    () => selectedYear >= latestAvailableYear,
     [selectedYear, latestAvailableYear]
   );
 
   const goToPreviousYear = useCallback(() => {
     if (isAtEarliestYear) return;
-    setSelectedYear((prev) => (prev !== null ? prev - 1 : prev));
-  }, [isAtEarliestYear]);
+    updateParams({ trendYear: String(selectedYear - 1) });
+  }, [isAtEarliestYear, selectedYear, updateParams]);
 
   const goToNextYear = useCallback(() => {
     if (isAtLatestYear) return;
-    setSelectedYear((prev) => (prev !== null ? prev + 1 : prev));
-  }, [isAtLatestYear]);
+    updateParams({ trendYear: String(selectedYear + 1) });
+  }, [isAtLatestYear, selectedYear, updateParams]);
 
-  const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedExpenseCategoryId(value || null);
-  }, []);
+  const handleCategoryChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const value = e.target.value;
+      updateParams({ trendCat: value || null });
+    },
+    [updateParams]
+  );
 
   const formatCurrency = useCallback((value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -205,7 +232,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
         return (
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700 p-3 shadow-lg border border-gray-300 dark:border-gray-500">
             <p className="font-medium text-gray-900 dark:text-gray-200 mb-2">
-              {label} {selectedYear!}
+              {label} {selectedYear}
             </p>
             {payload.map((entry, index) => (
               <p
@@ -231,10 +258,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, [chartData, monthlyData]);
 
   const isLoading =
-    monthlyData === undefined ||
-    categories === undefined ||
-    availableYears === null ||
-    selectedYear === null;
+    monthlyData === undefined || categories === undefined || availableYears === null;
 
   // Suppress unused isDarkMode warning — used for grid color
   void isDarkMode;
@@ -256,7 +280,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
           </button>
 
           <select
-            value={selectedYear!}
+            value={selectedYear}
             onChange={handleYearChange}
             className="min-h-[38px] appearance-none rounded-lg border border-gray-400 dark:border-gray-500 bg-white px-4 py-2 text-center text-sm font-medium text-gray-900 transition-colors hover:border-black dark:hover:border-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-200"
             aria-label={t("yearNavigation.selectYear")}
@@ -320,7 +344,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
           {isEmpty ? (
             <div className="flex h-64 flex-col items-center justify-center">
               <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
-                {t("noData", { period: selectedYear! })}
+                {t("noData", { period: selectedYear })}
               </p>
             </div>
           ) : (
