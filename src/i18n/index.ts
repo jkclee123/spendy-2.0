@@ -35,7 +35,6 @@ const initialLng = resolveInitialLanguage();
 
 i18n.use(initReactI18next).init({
   ...(initialLng ? { lng: initialLng } : {}),
-  initImmediate: false,
   resources: {
     en: en,
     "zh-HK": zhHK,
