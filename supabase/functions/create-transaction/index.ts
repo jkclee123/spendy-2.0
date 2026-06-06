@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
   const name = typeof body.name === "string" ? body.name.trim() : null;
 
   // Resolve category
-  let categoryId: string | null = null;
+  let categoryId: string | null;
   const { data: foundCategoryId } = await supabase.rpc("find_category_by_name", {
     p_user_id: userId,
     p_name: categoryName,

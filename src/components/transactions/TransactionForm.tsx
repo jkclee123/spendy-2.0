@@ -21,7 +21,6 @@ function evaluateFormula(formula: string): number | null {
     if (part.split(".").length > 2) return null;
   }
   try {
-    // eslint-disable-next-line no-new-func
     const result = new Function("return " + normalized)();
     if (typeof result !== "number" || !isFinite(result) || isNaN(result)) return null;
     return Math.round(result * 100) / 100;
