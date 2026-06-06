@@ -3,15 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useUserCategories } from "@/hooks/useUserCategories";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TransactionList } from "@/components/transactions/TransactionList";
 import {
   TransactionFilters,
   type TransactionFiltersState,
 } from "@/components/transactions/TransactionFilters";
-import type { Transaction, UserCategory } from "@/types";
-import * as categoryService from "@/lib/services/categories";
-import { readCatCache, writeCatCache } from "@/lib/catCache";
+import type { Transaction } from "@/types";
 
 function dateToTimestamp(dateStr: string, isEndDate: boolean): number | undefined {
   if (!dateStr) return undefined;
@@ -27,7 +26,7 @@ export function TransactionsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [categories, setCategories] = useState<UserCategory[]>([]);
+  const { activeCategories: categories } = useUserCategories(user?.id);
   const [isFetching, setIsFetching] = useState(false);
 
   const [filters, setFilters] = useState<TransactionFiltersState>({
@@ -49,22 +48,6 @@ export function TransactionsPage() {
     startDate?: number;
     endDate?: number;
   }>({});
-
-  // Fetch categories with localStorage cache
-  useEffect(() => {
-    if (!user) return;
-    const cached = readCatCache(user.id);
-    if (cached) {
-      setCategories(cached);
-    }
-    categoryService
-      .listActiveByUser(user.id)
-      .then((fresh) => {
-        setCategories(fresh);
-        writeCatCache(user.id, fresh);
-      })
-      .catch(() => {});
-  }, [user]);
 
   // Parse URL params into filters
   useEffect(() => {

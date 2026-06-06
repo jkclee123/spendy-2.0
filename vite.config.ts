@@ -63,14 +63,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          transactions: [
-            "./src/pages/TransactionsPage.tsx",
-            "./src/pages/TransactionCreatePage.tsx",
-            "./src/pages/TransactionUpdatePage.tsx",
-            "./src/components/transactions/TransactionList.tsx",
-            "./src/components/transactions/TransactionFilters.tsx",
-          ],
+        manualChunks: (id) => {
+          if (
+            id.includes("/src/pages/TransactionsPage") ||
+            id.includes("/src/pages/TransactionCreatePage") ||
+            id.includes("/src/pages/TransactionUpdatePage") ||
+            id.includes("/src/components/transactions/TransactionList") ||
+            id.includes("/src/components/transactions/TransactionFilters")
+          ) {
+            return "transactions";
+          }
         },
       },
     },
