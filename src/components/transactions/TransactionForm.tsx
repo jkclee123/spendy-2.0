@@ -1,13 +1,14 @@
 import { useState, FormEvent, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import type { Transaction, UserCategory } from "@/types";
+import type { Transaction } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/components/ui/Toast";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useUserCategories } from "@/hooks/useUserCategories";
 import { useAuth } from "@/lib/auth";
 import * as transactionService from "@/lib/services/transactions";
-import * as categoryService from "@/lib/services/categories";
 
 function evaluateFormula(formula: string): number | null {
   const sanitized = formula.replace(/\s/g, "");
@@ -92,7 +93,7 @@ export function TransactionForm({
 
   const isEditMode = !!initialData;
 
-  const [categories, setCategories] = useState<UserCategory[]>([]);
+  const { activeCategories: categories, isLoading: categoriesLoading } = useUserCategories(userId);
   const [type, setType] = useState<"expense" | "income">(initialData?.type ?? "expense");
   const [amount, setAmount] = useState(initialData ? initialData.amount.toString() : "");
   const [name, setName] = useState(initialData?.name ?? "");
@@ -105,16 +106,6 @@ export function TransactionForm({
   const [dateModified, setDateModified] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(true);
   const amountInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch categories
-  useEffect(() => {
-    if (userId) {
-      categoryService
-        .listActiveByUser(userId)
-        .then(setCategories)
-        .catch(() => {});
-    }
-  }, [userId]);
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
@@ -382,22 +373,33 @@ export function TransactionForm({
       </div>
 
       {/* Category Field */}
-      {type === "expense" && (
-        <CategoryDropdown
-          label={t("category")}
-          placeholder={t("selectCategory")}
-          required
-          categories={categories}
-          value={category}
-          onChange={(newCategory) => {
-            setCategory(newCategory);
-            if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
-          }}
-          currentLang={lang}
-          disabled={isSubmitting}
-          error={errors.category}
-        />
-      )}
+      {type === "expense" &&
+        (categoriesLoading && categories.length === 0 ? (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("category")}
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            <div className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-400 bg-white dark:border-gray-500 dark:bg-gray-800">
+              <LoadingSpinner size="sm" />
+            </div>
+          </div>
+        ) : (
+          <CategoryDropdown
+            label={t("category")}
+            placeholder={t("selectCategory")}
+            required
+            categories={categories}
+            value={category}
+            onChange={(newCategory) => {
+              setCategory(newCategory);
+              if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
+            }}
+            currentLang={lang}
+            disabled={isSubmitting}
+            error={errors.category}
+          />
+        ))}
 
       {/* Name Field */}
       <div>

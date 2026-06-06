@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useUserCategories } from "@/hooks/useUserCategories";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
@@ -10,40 +11,16 @@ import { CategoryEditModal } from "@/components/settings/CategoryEditModal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import type { UserCategory } from "@/types";
 import * as categoryService from "@/lib/services/categories";
-import { readCatCache, writeCatCache, clearCatCache } from "@/lib/catCache";
+import { clearCatCache } from "@/lib/catCache";
 
 export function CategoriesPage() {
   const { t } = useTranslation("categories");
   const { t: tCommon } = useTranslation("common");
   const { user } = useAuth();
   const { lang } = useLanguage();
-  const [categories, setCategories] = useState<UserCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { categories, isLoading, refresh } = useUserCategories(user?.id);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<UserCategory | undefined>(undefined);
-
-  const loadCategories = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await categoryService.listByUser(user.id);
-      setCategories(data);
-      writeCatCache(user.id, data);
-    } catch {
-      // ignore
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const cached = readCatCache(user.id);
-    if (cached) {
-      setCategories(cached);
-      setIsLoading(false);
-    }
-    loadCategories();
-  }, [user, loadCategories]);
 
   const handleCreate = useCallback(() => {
     setEditingCategory(undefined);
@@ -75,9 +52,9 @@ export function CategoriesPage() {
         });
       }
       clearCatCache(user.id);
-      await loadCategories();
+      await refresh();
     },
-    [user, editingCategory, lang, loadCategories]
+    [user, editingCategory, lang, refresh]
   );
 
   const handleDeactivate = useCallback(
@@ -85,9 +62,9 @@ export function CategoriesPage() {
       if (!user) return;
       await categoryService.deactivateCategory(category.id, user.id);
       clearCatCache(user.id);
-      await loadCategories();
+      await refresh();
     },
-    [user, loadCategories]
+    [user, refresh]
   );
 
   const handleActivate = useCallback(
@@ -95,9 +72,9 @@ export function CategoriesPage() {
       if (!user) return;
       await categoryService.activateCategory(category.id, user.id);
       clearCatCache(user.id);
-      await loadCategories();
+      await refresh();
     },
-    [user, loadCategories]
+    [user, refresh]
   );
 
   const getLocalizedName = (category: UserCategory) => {
