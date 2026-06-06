@@ -1,0 +1,42 @@
+name: Weekly bun update
+
+on:
+  schedule:
+    # Runs every 7 days, Mondays at 06:00 UTC.
+    # (GitHub cron has no literal "every N days"; a day-of-week schedule
+    #  is the only way to get a true, stable 7-day interval.)
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  bun-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Update dependencies
+        run: bun update
+
+      - name: Verify build still passes
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- package.json bun.lock; then
+            echo "No dependency changes — nothing to commit."
+            exit 0
+          fi
+          git add package.json bun.lock
+          git commit -m "chore(deps): weekly bun update"
+          git push
