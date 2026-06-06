@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . && tsc --noEmit",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . && tsc --noEmit",
     "test": "vitest",
     "test:e2e": "playwright test",
     "prepare": "husky"
@@ -35,7 +35,7 @@
     "@typescript-eslint/parser": "^8.60.1",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/ui": "^4.1.8",
-    "eslint": "^10.4.1",
+    "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "husky": "^9.1.7",
