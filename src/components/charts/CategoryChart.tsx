@@ -278,9 +278,32 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
     [isAllTime, selectedMonth, formatDate, getLastDayOfMonth]
   );
 
+  const getTypeLinkUrl = useCallback(
+    (type: "income" | "expense"): string | null => {
+      if (!selectedMonth) return null;
+      const params = new URLSearchParams();
+      params.set("type", type);
+      if (!isAllTime) {
+        params.set("fromDate", formatDate(selectedMonth.year, selectedMonth.month, 1));
+        params.set(
+          "toDate",
+          formatDate(
+            selectedMonth.year,
+            selectedMonth.month,
+            getLastDayOfMonth(selectedMonth.year, selectedMonth.month)
+          )
+        );
+      }
+      return `/transactions?${params.toString()}`;
+    },
+    [isAllTime, selectedMonth, formatDate, getLastDayOfMonth]
+  );
+
   const selectedMonthLabel = selectedMonth
     ? `${String(selectedMonth.month + 1).padStart(2, "0")}/${selectedMonth.year}`
     : "";
+  const incomeUrl = getTypeLinkUrl("income");
+  const expenseUrl = getTypeLinkUrl("expense");
   const emptyStateMessage = isAllTime
     ? t("noData", { period: t("allTime") })
     : t("noDataForMonth", { month: selectedMonthLabel });
@@ -353,18 +376,40 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
         <>
           {/* Total Income & Expenses */}
           <div className="mb-5 flex items-start justify-center gap-8">
-            <div className="text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalIncome")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
-                {formatCurrency(totalIncome ?? 0)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
-                {formatCurrency(totalAmount)}
-              </p>
-            </div>
+            {incomeUrl ? (
+              <Link to={incomeUrl} className="hover:opacity-70 transition-opacity">
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalIncome")}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                    {formatCurrency(totalIncome ?? 0)}
+                  </p>
+                </div>
+              </Link>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalIncome")}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                  {formatCurrency(totalIncome ?? 0)}
+                </p>
+              </div>
+            )}
+            {expenseUrl ? (
+              <Link to={expenseUrl} className="hover:opacity-70 transition-opacity">
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                    {formatCurrency(totalAmount)}
+                  </p>
+                </div>
+              </Link>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("totalExpenses")}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+                  {formatCurrency(totalAmount)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Horizontal Bar List */}
