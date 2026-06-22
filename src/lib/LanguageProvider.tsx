@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -108,6 +109,50 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
     syncLanguage();
   }, [userId, i18n]);
+
+  // Keep a ref of the current preference so the realtime handler can cheaply
+  // detect no-op echoes (e.g. the originating device receiving its own update).
+  const userPrefRef = useRef(userPreference);
+  userPrefRef.current = userPreference;
+
+  // Subscribe to realtime updates of this user's row so language changes made
+  // on another device/session are applied live without requiring a reload.
+  useEffect(() => {
+    if (!userId) {
+      setUserExists(null);
+      return;
+    }
+
+    const channel = supabase
+      .channel(`users:lang:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "users",
+          filter: `id=eq.${userId}`,
+        },
+        (payload) => {
+          const incoming = payload.new?.lang;
+          if (
+            !incoming ||
+            !VALID_LANG_VALUES.includes(incoming as (typeof VALID_LANG_VALUES)[number])
+          ) {
+            return;
+          }
+          const validated = incoming as "system" | "en" | "zh-HK";
+          if (validated === userPrefRef.current) return;
+          writeLangCache(userId, validated);
+          setUserPref(validated);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const lang = useMemo<"en" | "zh-HK">(() => {
     if (userPreference === "system") return detectBrowserLanguage();
