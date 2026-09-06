@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { Wallet, PieChart, PlusCircle, LayoutGrid, Settings, type LucideIcon } from "lucide-react";
 import { NavigationLink } from "@/components/ui/NavigationLink";
 import { useTranslation } from "react-i18next";
+import { getTransactionCreateUrl } from "@/lib/transactionNavigation";
 
 interface NavItem {
   href: string;
@@ -68,7 +69,7 @@ function NavLink({ item, isActive, label, showLabel = true, isDesktop = false }:
 }
 
 export function NavigationBar({ isLanguageReady = true }: { isLanguageReady?: boolean }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { t } = useTranslation("nav");
 
   const getIsActive = (item: NavItem) => {
@@ -79,6 +80,9 @@ export function NavigationBar({ isLanguageReady = true }: { isLanguageReady?: bo
     return pathname.startsWith(item.href);
   };
 
+  const getHref = (item: NavItem) =>
+    item.key === "create" ? getTransactionCreateUrl(pathname, search) : item.href;
+
   return (
     <>
       {/* Mobile Bottom Navigation */}
@@ -88,7 +92,7 @@ export function NavigationBar({ isLanguageReady = true }: { isLanguageReady?: bo
             {navItems.map((item) => (
               <NavLink
                 key={item.href}
-                item={item}
+                item={{ ...item, href: getHref(item) }}
                 isActive={getIsActive(item)}
                 label={t(item.key)}
               />
@@ -103,7 +107,7 @@ export function NavigationBar({ isLanguageReady = true }: { isLanguageReady?: bo
           {navItems.map((item) => (
             <NavLink
               key={item.href}
-              item={item}
+              item={{ ...item, href: getHref(item) }}
               isActive={getIsActive(item)}
               label={t(item.key)}
               showLabel={true}

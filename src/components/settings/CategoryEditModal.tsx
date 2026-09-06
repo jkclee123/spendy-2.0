@@ -14,8 +14,8 @@ interface CategoryEditModalProps {
 
 /**
  * Modal for creating/editing categories
- * - Emoji picker or text input for emoji
  * - Single name input with smart-save logic
+ * - Emoji picker or text input for emoji
  * - Create or Update button
  */
 export function CategoryEditModal({
@@ -88,6 +88,26 @@ export function CategoryEditModal({
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Name input */}
+        <div>
+          <label
+            htmlFor="category-name"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            {t("name")} <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="category-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("categoryName")}
+            className="w-full min-h-[44px] rounded-xl border border-gray-400 dark:border-gray-500 hover:border-black dark:hover:border-gray-400 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-gray-200 focus:outline-none"
+            maxLength={50}
+            disabled={isLoading}
+          />
+        </div>
+
         {/* Emoji picker */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -107,26 +127,6 @@ export function CategoryEditModal({
               aria-label={t("emoji")}
             />
           </div>
-        </div>
-
-        {/* Name input */}
-        <div>
-          <label
-            htmlFor="category-name"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            {t("name")} <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="category-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("categoryName")}
-            className="w-full min-h-[44px] rounded-xl border border-gray-400 dark:border-gray-500 hover:border-black dark:hover:border-gray-400 bg-white dark:bg-gray-900 px-4 py-2 text-gray-900 dark:text-gray-200 focus:outline-none"
-            maxLength={50}
-            disabled={isLoading}
-          />
         </div>
 
         {/* Error message */}

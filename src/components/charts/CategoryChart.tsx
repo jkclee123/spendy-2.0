@@ -6,27 +6,12 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import * as aggregatesService from "@/lib/services/aggregates";
+import { EXPENSE_RATIO_COLORS } from "@/lib/expensePalette";
 
 interface CategoryPieChartProps {
   userId: string;
   className?: string;
 }
-
-// Color palette (Latte theme) for categories
-const COLORS = [
-  "#8839ef", // Mauve
-  "#d20f39", // Red
-  "#e64553", // Maroon
-  "#fe640b", // Peach
-  "#df8e1d", // Yellow
-  "#40a02b", // Green
-  "#179299", // Teal
-  "#209fb5", // Sapphire
-  "#04a5e5", // Sky
-  "#1e66f5", // Blue
-  "#7287fd", // Lavender
-  "#ea76cb", // Pink
-];
 
 /**
  * Pie chart component for displaying Expenses ratio with month navigation
@@ -229,7 +214,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
       .map((item, index) => ({
         ...item,
         category: getCategoryLabel(item),
-        fill: COLORS[index % COLORS.length],
+        fill: EXPENSE_RATIO_COLORS[index % EXPENSE_RATIO_COLORS.length],
       }));
   }, [categoryData, getCategoryLabel]);
 
@@ -415,14 +400,14 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
           {/* Horizontal Bar List */}
           <div className="flex flex-col gap-2">
             {chartData.map((item, index) => {
-              const color = COLORS[index % COLORS.length];
+              const color = item.fill;
               const widthPct = totalAmount > 0 ? (item.total / chartData[0].total) * 100 : 0;
               const categoryUrl = getCategoryLinkUrl(item.category_id);
               const rowContent = (
                 <>
                   <span className="flex items-center gap-1 shrink-0">
                     <span className="text-xl w-8 text-center">{item.emoji || "?"}</span>
-                    <span className="hidden lg:block text-sm text-gray-700 dark:text-gray-300 w-28 truncate">
+                    <span className="hidden lg:block text-sm text-gray-700 dark:text-gray-300 w-12 truncate">
                       {item.category}
                     </span>
                   </span>

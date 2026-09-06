@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import {
   type TransactionFiltersState,
 } from "@/components/transactions/TransactionFilters";
 import type { Transaction } from "@/types";
+import { getTransactionUpdateUrl } from "@/lib/transactionNavigation";
 
 function dateToTimestamp(dateStr: string, isEndDate: boolean): number | undefined {
   if (!dateStr) return undefined;
@@ -25,6 +26,7 @@ export function TransactionsPage() {
   const { t } = useTranslation("transactions");
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [searchParams] = useSearchParams();
   const { activeCategories: categories } = useUserCategories(user?.id);
   const [isFetching, setIsFetching] = useState(false);
@@ -84,9 +86,9 @@ export function TransactionsPage() {
 
   const handleTransactionClick = useCallback(
     (transaction: Transaction) => {
-      navigate(`/transactions/update/${transaction.id}`);
+      navigate(getTransactionUpdateUrl(transaction.id, search));
     },
-    [navigate]
+    [navigate, search]
   );
 
   const applyFilters = useCallback(

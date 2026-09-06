@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -8,13 +8,16 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import * as transactionService from "@/lib/services/transactions";
 import type { Transaction } from "@/types";
+import { getTransactionsUrl } from "@/lib/transactionNavigation";
 
 export function TransactionUpdatePage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation("transactions");
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [transaction, setTransaction] = useState<Transaction | null | undefined>(undefined);
+  const transactionsUrl = getTransactionsUrl(search);
 
   useEffect(() => {
     if (!id) return;
@@ -58,8 +61,8 @@ export function TransactionUpdatePage() {
           <TransactionForm
             userId={user.id}
             initialData={transaction}
-            onSuccess={() => navigate("/transactions")}
-            onCancel={() => navigate("/transactions")}
+            onSuccess={() => navigate(transactionsUrl)}
+            onCancel={() => navigate(transactionsUrl)}
           />
         </CardContent>
       </Card>
