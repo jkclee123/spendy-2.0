@@ -4,10 +4,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase, getCachedSession } from "@/lib/supabase";
 import { useLanguageReady } from "@/lib/LanguageProvider";
 
+export type AuthError = "not_allowed" | null;
+
 interface AuthContextValue {
   user: SupabaseUser | null;
   session: Session | null;
   isLoading: boolean;
+  authError: AuthError;
+  clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -16,6 +20,8 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   isLoading: true,
+  authError: null,
+  clearAuthError: () => {},
   signInWithGoogle: async () => {},
   signOut: async () => {},
 });
@@ -33,6 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<SupabaseUser | null>(cached?.user ?? null);
   const [session, setSession] = useState<Session | null>(cached?.session ?? null);
   const [isLoading, setIsLoading] = useState(!cached);
+  const [authError, setAuthError] = useState<AuthError>(null);
 
   useEffect(() => {
     const {
@@ -41,12 +48,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+
+      // Enforce the email allowlist on every session, not just signup. A user
+      // whose email is removed from allowed_emails still holds a valid auth.users
+      // row, so the signup trigger alone would not lock them out.
+      const email = session?.user?.email;
+      if (!email) return;
+      void supabase.rpc("is_email_allowed", { p_email: email }).then(({ data, error }) => {
+        if (error || data !== false) return;
+        setAuthError("not_allowed");
+        void supabase.auth.signOut();
+      });
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signInWithGoogle = async () => {
+    setAuthError(null);
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -79,6 +98,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user,
         session,
         isLoading,
+        authError,
+        clearAuthError: () => setAuthError(null),
         signInWithGoogle,
         signOut: signOutHandler,
       }}

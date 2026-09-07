@@ -4,8 +4,16 @@ import { useAuth } from "@/lib/auth";
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { signInWithGoogle, user, isLoading: authLoading } = useAuth();
+  const { signInWithGoogle, user, isLoading: authLoading, authError } = useAuth();
   const navigate = useNavigate();
+
+  // The signup trigger rejects unlisted emails, which Supabase surfaces as an
+  // error in the OAuth redirect hash rather than as a session.
+  const [redirectError] = useState(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    return hash.has("error");
+  });
+  const isBlocked = authError === "not_allowed" || redirectError;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -42,6 +50,12 @@ export function LoginPage() {
             Spendy
           </h1>
         </div>
+
+        {isBlocked && (
+          <p className="mb-6 text-center text-sm text-red-600 dark:text-red-400">
+            This account is not authorized to use Spendy.
+          </p>
+        )}
 
         {/* Login Card */}
         <div className="flex justify-center">
