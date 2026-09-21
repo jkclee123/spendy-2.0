@@ -53,8 +53,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   handleReset = (): void => {
-    this.setState({ hasError: false, error: null });
     this.props.onReset?.();
+    window.location.reload();
   };
 
   render(): ReactNode {
@@ -92,9 +92,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </pre>
           )}
           <div className="mt-6 flex gap-3">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
             <Button variant="primary" onClick={this.handleReset}>
               Try Again
             </Button>
