@@ -22,14 +22,17 @@
   "charts": {
     "title": "圖表",
     "expensesByCategory": "支出比例",
+    "incomeByName": "收入比例",
     "totalExpenses": "總支出",
     "totalIncome": "總收入",
+    "uncategorized": "未分類",
+    "unnamed": "未命名",
     "allTime": "全時間",
     "incomeExpenseTrend": "收支趨勢",
     "income": "收入",
     "expense": "支出",
     "noData": "本年沒有資料",
-    "noDataForMonth": "本月沒有支出",
+    "noDataForPeriod": "{{period}} 沒有資料",
     "categoryFilter": {
       "all": "所有類別"
     },
@@ -37,6 +40,11 @@
       "previousYear": "上一年",
       "nextYear": "下一年",
       "selectYear": "選擇年份"
+    },
+    "monthNavigation": {
+      "previousMonth": "上一期",
+      "nextMonth": "下一期",
+      "selectMonth": "選擇時段"
     }
   },
   "settings": {

@@ -22,14 +22,17 @@
   "charts": {
     "title": "Charts",
     "expensesByCategory": "Expenses Ratio",
+    "incomeByName": "Income Ratio",
     "totalExpenses": "Total Expenses",
     "totalIncome": "Total Income",
+    "uncategorized": "Uncategorized",
+    "unnamed": "Unnamed",
     "allTime": "All Time",
     "incomeExpenseTrend": "Income Expense Trend",
     "income": "Income",
     "expense": "Expense",
     "noData": "No data for this year",
-    "noDataForMonth": "No spending for this month",
+    "noDataForPeriod": "No data for {{period}}",
     "categoryFilter": {
       "all": "All Category"
     },
@@ -37,6 +40,11 @@
       "previousYear": "Previous year",
       "nextYear": "Next year",
       "selectYear": "Select year"
+    },
+    "monthNavigation": {
+      "previousMonth": "Previous period",
+      "nextMonth": "Next period",
+      "selectMonth": "Select period"
     }
   },
   "settings": {

@@ -1,38 +1,24 @@
 import { useCallback } from "react";
-import type { CategoryAggregation } from "@/types";
-import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslation } from "react-i18next";
 import * as aggregatesService from "@/lib/services/aggregates";
 import { RatioChart } from "@/components/charts/RatioChart";
 import type { DateFilter, PeriodRange, RatioItem } from "@/components/charts/RatioChart";
 
-interface CategoryPieChartProps {
+interface IncomeRatioProps {
   userId: string;
   className?: string;
 }
 
 /**
- * Expenses ratio: total expenses for the selected period broken down by
- * category, largest first, each row linking to the matching transactions.
+ * Income ratio: total income for the selected period broken down by
+ * transaction name (income is never categorised), largest first.
  */
-export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps) {
-  const { lang } = useLanguage();
+export function IncomeRatio({ userId, className = "" }: IncomeRatioProps) {
   const { t } = useTranslation("charts");
-
-  const getCategoryLabel = useCallback(
-    (item: CategoryAggregation): string => {
-      if (item.en_name || item.zh_name) {
-        const name = lang === "zh-HK" ? item.zh_name || item.en_name : item.en_name || item.zh_name;
-        return name || t("uncategorized");
-      }
-      return t("uncategorized");
-    },
-    [lang, t]
-  );
 
   const fetchItems = useCallback(
     async (id: string, range: PeriodRange): Promise<RatioItem[]> => {
-      const data = await aggregatesService.getExpensesByCategory(
+      const data = await aggregatesService.getIncomeByName(
         id,
         range.startYear,
         range.startMonth,
@@ -40,20 +26,20 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
         range.endMonth
       );
       return data.map((item) => ({
-        key: item.category_id ?? "uncategorized",
-        label: getCategoryLabel(item),
-        emoji: item.emoji,
+        key: item.name ?? "unnamed",
+        label: item.name ?? t("unnamed"),
         total: item.total,
-        filterValue: item.category_id ?? null,
+        filterValue: item.name,
       }));
     },
-    [getCategoryLabel]
+    [t]
   );
 
   const itemHref = useCallback((item: RatioItem, dateFilter: DateFilter | null) => {
     if (!item.filterValue) return null;
     const params = new URLSearchParams();
-    params.set("category", item.filterValue);
+    params.set("type", "income");
+    params.set("name", item.filterValue);
     if (dateFilter) {
       params.set("fromDate", dateFilter.fromDate);
       params.set("toDate", dateFilter.toDate);
@@ -63,7 +49,7 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
 
   const totalHref = useCallback((dateFilter: DateFilter | null) => {
     const params = new URLSearchParams();
-    params.set("type", "expense");
+    params.set("type", "income");
     if (dateFilter) {
       params.set("fromDate", dateFilter.fromDate);
       params.set("toDate", dateFilter.toDate);
@@ -74,12 +60,12 @@ export function ExpensesRatio({ userId, className = "" }: CategoryPieChartProps)
   return (
     <RatioChart
       userId={userId}
-      paramPrefix="cat"
-      totalLabel={t("totalExpenses")}
+      paramPrefix="inc"
+      totalLabel={t("totalIncome")}
       fetchItems={fetchItems}
       itemHref={itemHref}
       totalHref={totalHref}
-      showEmoji
+      reverseColors
       className={className}
     />
   );

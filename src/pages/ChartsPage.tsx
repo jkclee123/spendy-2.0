@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ExpensesRatio } from "@/components/charts/CategoryChart";
+import { IncomeRatio } from "@/components/charts/IncomeChart";
 import { IncomeExpenseTrendChart } from "@/components/charts/TrendChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
@@ -20,6 +21,14 @@ export function ChartsPage() {
         </CardHeader>
         <CardContent>
           <ExpensesRatio userId={user.id} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("incomeByName")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <IncomeRatio userId={user.id} />
         </CardContent>
       </Card>
       <Card>
