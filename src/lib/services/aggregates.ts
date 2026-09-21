@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { CategoryAggregation, MonthlyIncomeExpenseData } from "@/types";
+import type { CategoryAggregation, MonthlyIncomeExpenseData, NameAggregation } from "@/types";
 
 export async function getMonthlyIncomeExpenseTrend(
   userId: string,
@@ -60,6 +60,28 @@ export async function getExpensesByCategory(
 
   if (error) throw error;
   return (data ?? []) as CategoryAggregation[];
+}
+
+export async function getIncomeByName(
+  userId: string,
+  startYear: number,
+  startMonth: number,
+  endYear: number,
+  endMonth: number
+): Promise<NameAggregation[]> {
+  const { data, error } = await supabase.rpc("get_income_by_name", {
+    p_user_id: userId,
+    p_start_year: startYear,
+    p_start_month: startMonth,
+    p_end_year: endYear,
+    p_end_month: endMonth,
+  });
+
+  if (error) throw error;
+  // numeric columns can come back as strings; normalise before any arithmetic
+  return (
+    (data ?? []) as Array<{ name: string | null; total: number | string; count: number }>
+  ).map((row) => ({ name: row.name, total: Number(row.total), count: row.count }));
 }
 
 export async function getEarliestTransactionDate(userId: string): Promise<number | null> {

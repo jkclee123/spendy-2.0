@@ -78,6 +78,15 @@ export interface CategoryAggregation {
 }
 
 /**
+ * Aggregated income data grouped by transaction name
+ */
+export interface NameAggregation {
+  name: string | null;
+  total: number;
+  count: number;
+}
+
+/**
  * Aggregated monthly data for histogram
  */
 export interface MonthlyAggregation {
