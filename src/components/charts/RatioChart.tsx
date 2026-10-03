@@ -496,6 +496,19 @@ export function RatioChart({ userId, className = "" }: RatioChartProps) {
       {!isLoading && (
         <>
           {sections}
+          <div className="mt-5 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("netIncome")}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+              {formatCurrency(
+                (items ?? []).reduce(
+                  (net, categories, index) =>
+                    net +
+                    categories.reduce((sum, item) => sum + item.total, 0) * (index === 0 ? -1 : 1),
+                  0
+                )
+              )}
+            </p>
+          </div>
           <style>{`
             @keyframes barGrow {
               from { transform: scaleX(0); opacity: 0; }

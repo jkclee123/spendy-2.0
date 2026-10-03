@@ -21,7 +21,7 @@
   },
   "charts": {
     "title": "圖表",
-    "expensesByCategory": "支出比例",
+    "expensesByCategory": "收支比例",
     "incomeByName": "收入比例",
     "totalExpenses": "總支出",
     "totalIncome": "總收入",
