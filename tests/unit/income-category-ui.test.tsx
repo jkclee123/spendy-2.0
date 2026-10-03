@@ -212,7 +212,7 @@ describe("TransactionForm income category regressions", () => {
     expect(screen.getByRole("option", { name: "F Food" })).toBeTruthy();
     expect(screen.queryByRole("option", { name: "$ Salary" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Income" }));
-    expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: /Category/ })).toBeTruthy();
     expect(screen.getByRole("option", { name: "$ Salary" })).toBeTruthy();
     expect(screen.queryByRole("option", { name: "F Food" })).toBeNull();
     expect(screen.queryByRole("option", { name: "$ Old Salary" })).toBeNull();
@@ -262,7 +262,31 @@ describe("TransactionForm income category regressions", () => {
     }
   );
 
-  it("clears selection in both type-switch directions, but not when clicking the current type", async () => {
+  it.each(["create", "update"] as const)("requires an income category on %s", (mode) => {
+    const initialData: Transaction = {
+      id: "tx",
+      user_id: "user",
+      type: "income",
+      amount: 100,
+      name: "Pay",
+      category_id: null,
+      created_at: 1_700_000_000_000,
+    };
+    const { container } = renderUI(
+      <TransactionForm userId="user" initialData={mode === "update" ? initialData : undefined} />
+    );
+    if (mode === "create") {
+      fireEvent.click(screen.getByRole("button", { name: "Income" }));
+      fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: "100" } });
+    }
+    expect(screen.getByLabelText("Category*")).toBeTruthy();
+    fireEvent.submit(container.querySelector("form")!);
+    expect(screen.getByText(messages.transactions.errors.categoryRequired)).toBeTruthy();
+    expect(mocks.createTransaction).not.toHaveBeenCalled();
+    expect(mocks.updateTransaction).not.toHaveBeenCalled();
+  });
+
+  it("clears selection in both type-switch directions, but not when clicking the current type", () => {
     renderUI(<TransactionForm userId="user" />);
     const select = screen.getByRole("combobox") as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "food" } });
@@ -278,13 +302,6 @@ describe("TransactionForm income category regressions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Income" }));
     fireEvent.change(screen.getByLabelText(/Amount/), { target: { value: "100" } });
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
-    await waitFor(() =>
-      expect(mocks.createTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "income",
-          categoryId: undefined,
-        })
-      )
-    );
+    expect(mocks.createTransaction).not.toHaveBeenCalled();
   });
 });

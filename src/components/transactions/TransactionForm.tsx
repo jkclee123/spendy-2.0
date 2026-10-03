@@ -153,10 +153,10 @@ export function TransactionForm({
       else if (evaluatedAmount <= 0) newErrors.amount = t("errors.amountTooSmall");
       else if (evaluatedAmount > 1000000000) newErrors.amount = t("errors.amountTooLarge");
     }
-    if (type === "expense" && !category) newErrors.category = t("errors.categoryRequired");
+    if (!category) newErrors.category = t("errors.categoryRequired");
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [amount, category, t, type]);
+  }, [amount, category, t]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -379,7 +379,7 @@ export function TransactionForm({
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("category")}
-            {type === "expense" && <span className="text-red-500 ml-1">*</span>}
+            <span className="text-red-500 ml-1">*</span>
           </label>
           <div className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-400 bg-white dark:border-gray-500 dark:bg-gray-800">
             <LoadingSpinner size="sm" />
@@ -389,7 +389,7 @@ export function TransactionForm({
         <CategoryDropdown
           label={t("category")}
           placeholder={t("selectCategory")}
-          required={type === "expense"}
+          required
           categories={categories}
           value={category}
           onChange={(newCategory) => {
