@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  LineChart,
+  ComposedChart,
+  Bar,
+  ReferenceLine,
   Line,
   XAxis,
   YAxis,
@@ -42,6 +44,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   }, []);
 
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth() + 1);
   const [availableYears, setAvailableYears] = useState<number[] | null>(null);
   const [categories, setCategories] = useState<UserCategory[] | undefined>(undefined);
   const [monthlyData, setMonthlyData] = useState<MonthlyIncomeExpenseData[] | undefined>(undefined);
@@ -76,8 +79,9 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
     if (!userId) return;
     aggregatesService
       .getCurrentUserYearMonth(userId)
-      .then(({ year }) => {
+      .then(({ year, month }) => {
         setCurrentYear(year);
+        setCurrentMonth(month + 1);
       })
       .catch(() => {
         setCurrentYear(new Date().getFullYear());
@@ -176,46 +180,49 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   );
 
   const chartData = useMemo(() => {
-    if (!monthlyData) {
-      return Array.from({ length: 12 }, (_, i) => ({
-        month: i + 1,
-        monthLabel: getMonthLabel(i + 1),
-        income: 0,
-        expense: 0,
-      }));
-    }
-    const dataMap = new Map(monthlyData.map((item) => [item.month, item]));
+    const dataMap = new Map((monthlyData ?? []).map((item) => [item.month, item]));
+    let cumulativeNetIncome = 0;
     return Array.from({ length: 12 }, (_, i) => {
       const monthNum = i + 1;
       const item = dataMap.get(monthNum);
+      const isFuture =
+        selectedYear > currentYear || (selectedYear === currentYear && monthNum > currentMonth);
+      const netIncome = (item?.income ?? 0) - (item?.expense ?? 0);
+      if (!isFuture) cumulativeNetIncome += netIncome;
       return {
         month: monthNum,
         monthLabel: getMonthLabel(monthNum),
-        income: item?.income ?? 0,
-        expense: item?.expense ?? 0,
+        income: isFuture ? null : (item?.income ?? 0),
+        expense: isFuture ? null : (item?.expense ?? 0),
+        netIncome: isFuture ? null : netIncome,
+        cumulativeNetIncome: isFuture ? null : cumulativeNetIncome,
       };
     });
-  }, [monthlyData, getMonthLabel]);
+  }, [monthlyData, getMonthLabel, selectedYear, currentYear, currentMonth]);
 
   const yAxisTicks = useMemo(() => {
-    if (!chartData || chartData.length === 0) return [0, 500, 1000, 1500, 2000];
     const maxValue = selectedExpenseCategoryId
-      ? Math.max(...chartData.map((d) => d.expense))
-      : Math.max(...chartData.map((d) => Math.max(d.income, d.expense)));
-    if (maxValue === 0) return [0, 500, 1000, 1500, 2000];
-
-    // Pick a "nice" step targeting ~4 ticks
-    const rawStep = maxValue / 4;
-    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-    const normalized = rawStep / magnitude;
-    let step: number;
-    if (normalized <= 1) step = magnitude;
-    else if (normalized <= 2) step = 2 * magnitude;
-    else if (normalized <= 5) step = 5 * magnitude;
-    else step = 10 * magnitude;
-
-    const tickMax = Math.ceil(maxValue / step) * step;
-    return Array.from({ length: Math.round(tickMax / step) + 1 }, (_, i) => i * step);
+      ? Math.max(...chartData.map((d) => d.expense ?? 0))
+      : Math.max(
+          ...chartData.map((d) =>
+            Math.max(d.income ?? 0, d.expense ?? 0, d.cumulativeNetIncome ?? 0)
+          )
+        );
+    const minValue = selectedExpenseCategoryId
+      ? 0
+      : Math.min(
+          0,
+          ...chartData.map((d) => Math.min(d.netIncome ?? 0, d.cumulativeNetIncome ?? 0))
+        );
+    const step = 5000;
+    const tickMax = Math.max(20000, Math.ceil(maxValue / step) * step);
+    const tickMin = selectedExpenseCategoryId
+      ? 0
+      : Math.min(-10000, Math.floor(minValue / step) * step);
+    return Array.from(
+      { length: Math.round((tickMax - tickMin) / step) + 1 },
+      (_, i) => tickMin + i * step
+    );
   }, [chartData, selectedExpenseCategoryId]);
 
   const CustomTooltip = useCallback(
@@ -238,10 +245,18 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
               <p
                 key={index}
                 className="text-sm"
-                style={{ color: entry.name === "income" ? "#22c55e" : "#ef4444" }}
+                style={{
+                  color:
+                    entry.name === "income"
+                      ? "#22c55e"
+                      : entry.name === "netIncome"
+                        ? "#3b82f6"
+                        : entry.name === "cumulativeNetIncome"
+                          ? "#f97316"
+                          : "#ef4444",
+                }}
               >
-                {entry.name === "income" ? t("income") || "Income" : t("expense") || "Expense"}:{" "}
-                {formatCurrency(entry.value)}
+                {t(entry.name)}: {formatCurrency(entry.value)}
               </p>
             ))}
           </div>
@@ -254,14 +269,11 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
 
   const isEmpty = useMemo(() => {
     if (!monthlyData) return false;
-    return chartData.every((d) => d.income === 0 && d.expense === 0);
+    return chartData.every((d) => (d.income ?? 0) === 0 && (d.expense ?? 0) === 0);
   }, [chartData, monthlyData]);
 
   const isLoading =
     monthlyData === undefined || categories === undefined || availableYears === null;
-
-  // Suppress unused isDarkMode warning — used for grid color
-  void isDarkMode;
 
   return (
     <div className={`w-full ${className}`}>
@@ -316,24 +328,26 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
             aria-label={t("categoryFilter.all")}
           >
             <option value="">{t("categoryFilter.all")}</option>
-            {categories?.map((category) => {
-              const name =
-                lang === "zh-HK"
-                  ? category.zh_name || category.en_name
-                  : category.en_name || category.zh_name;
-              return (
-                <option key={category.id} value={category.id}>
-                  {category.emoji} {name || "Unnamed"}
-                </option>
-              );
-            })}
+            {categories
+              ?.filter((category) => category.type === "expense")
+              .map((category) => {
+                const name =
+                  lang === "zh-HK"
+                    ? category.zh_name || category.en_name
+                    : category.en_name || category.zh_name;
+                return (
+                  <option key={category.id} value={category.id}>
+                    {category.emoji} {name || "Unnamed"}
+                  </option>
+                );
+              })}
           </select>
         </div>
       </div>
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex h-64 items-center justify-center">
+        <div className="flex h-80 sm:h-[420px] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
       )}
@@ -342,13 +356,13 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       {!isLoading && (
         <div className={isRefetchingMonthly ? "opacity-50 pointer-events-none" : ""}>
           {isEmpty ? (
-            <div className="flex h-64 flex-col items-center justify-center">
+            <div className="flex h-80 sm:h-[420px] flex-col items-center justify-center">
               <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
                 {t("noData", { period: selectedYear })}
               </p>
             </div>
           ) : (
-            <div className="h-64 sm:h-80 [&>div]:outline-none [&_svg]:outline-none">
+            <div className="h-80 sm:h-[420px] [&>div]:outline-none [&_svg]:outline-none">
               <ResponsiveContainer
                 width="100%"
                 height="100%"
@@ -356,58 +370,106 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                 minHeight={0}
                 aspect={undefined}
               >
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke={isDarkMode ? "#363636" : "#E8E8E8"} vertical={true} />
+                <ComposedChart
+                  data={chartData}
+                  margin={{ top: 16, right: 8, left: 12, bottom: 0 }}
+                  barGap={3}
+                  barCategoryGap="25%"
+                >
+                  <CartesianGrid stroke={isDarkMode ? "#374151" : "#E8E8E8"} vertical={false} />
                   <XAxis
                     dataKey="monthLabel"
                     tick={{ fontSize: 12, fill: "#808080" }}
                     tickLine={false}
-                    axisLine={{ stroke: "#808080" }}
-                    interval={0}
+                    axisLine={false}
+                    padding={{ left: 12, right: 12 }}
+                    minTickGap={8}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
+                    orientation="right"
                     ticks={yAxisTicks}
-                    domain={[0, yAxisTicks[yAxisTicks.length - 1]]}
+                    interval={0}
+                    domain={[yAxisTicks[0], yAxisTicks[yAxisTicks.length - 1]]}
                     tickFormatter={(value) => {
-                      if (value >= 1000) {
-                        const k = value / 1000;
-                        return `$${Number.isInteger(k) ? k : k.toFixed(1)}k`;
+                      const sign = value < 0 ? "-" : "";
+                      const amount = Math.abs(value);
+                      if (amount >= 1000) {
+                        const k = amount / 1000;
+                        return `${sign}$${Number.isInteger(k) ? k : k.toFixed(1)}k`;
                       }
-                      return `$${value}`;
+                      return `${sign}$${amount}`;
                     }}
                     tick={{ fontSize: 12, fill: "#808080" }}
                     tickLine={false}
-                    axisLine={{ stroke: "#808080" }}
-                    width={50}
+                    axisLine={false}
+                    width={60}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <ReferenceLine
+                    y={0}
+                    stroke={isDarkMode ? "#9ca3af" : "#6b7280"}
+                    strokeWidth={1.5}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ fill: isDarkMode ? "#ffffff" : "#000000", fillOpacity: 0.04 }}
+                  />
                   <Legend
                     wrapperStyle={{ paddingTop: "10px" }}
                     formatter={(value: string) => (
-                      <span style={{ color: value === "income" ? "#22c55e" : "#ef4444" }}>
-                        {value === "income" ? t("income") || "Income" : t("expense") || "Expense"}
+                      <span
+                        style={{
+                          color:
+                            value === "income"
+                              ? "#22c55e"
+                              : value === "netIncome"
+                                ? "#3b82f6"
+                                : value === "cumulativeNetIncome"
+                                  ? "#f97316"
+                                  : "#ef4444",
+                        }}
+                      >
+                        {t(value)}
                       </span>
                     )}
                   />
                   {!selectedExpenseCategoryId && (
-                    <Line
-                      type="linear"
+                    <Bar
                       dataKey="income"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 6, fill: "#22c55e" }}
+                      fill="#22c55e"
+                      fillOpacity={0.8}
+                      maxBarSize={24}
+                      radius={[3, 3, 0, 0]}
                     />
                   )}
-                  <Line
-                    type="linear"
+                  <Bar
                     dataKey="expense"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 6, fill: "#ef4444" }}
+                    fill="#ef4444"
+                    fillOpacity={0.8}
+                    maxBarSize={24}
+                    radius={[3, 3, 0, 0]}
                   />
-                </LineChart>
+                  {!selectedExpenseCategoryId && (
+                    <Line
+                      type="linear"
+                      dataKey="netIncome"
+                      stroke="#3b82f6"
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: "#3b82f6", strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: "#3b82f6" }}
+                    />
+                  )}
+                  {!selectedExpenseCategoryId && (
+                    <Line
+                      type="linear"
+                      dataKey="cumulativeNetIncome"
+                      stroke="#f97316"
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: "#f97316", strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: "#f97316" }}
+                    />
+                  )}
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           )}

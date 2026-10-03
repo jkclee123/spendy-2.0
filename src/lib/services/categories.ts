@@ -41,6 +41,7 @@ export async function getById(categoryId: string): Promise<UserCategory | null> 
 
 export async function createCategory(params: {
   userId: string;
+  type?: UserCategory["type"];
   emoji: string;
   name: string;
   currentLang: "en" | "zh-HK";
@@ -49,6 +50,7 @@ export async function createCategory(params: {
     .from("user_categories")
     .insert({
       user_id: params.userId,
+      type: params.type ?? "expense",
       emoji: params.emoji,
       en_name: params.name,
       zh_name: params.name,
@@ -64,6 +66,7 @@ export async function createCategory(params: {
 export async function updateCategory(params: {
   categoryId: string;
   userId: string;
+  type?: UserCategory["type"];
   emoji: string;
   name: string;
   currentLang: "en" | "zh-HK";
@@ -72,6 +75,7 @@ export async function updateCategory(params: {
   const current = await getById(params.categoryId);
 
   const updateData: Record<string, string> = { emoji: params.emoji };
+  if (params.type !== undefined) updateData.type = params.type;
 
   if (!current?.en_name && !current?.zh_name) {
     // Both empty — save to both

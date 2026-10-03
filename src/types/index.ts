@@ -19,6 +19,7 @@ export interface User {
 export interface UserCategory {
   id: string;
   user_id: string;
+  type: "expense" | "income";
   is_active: boolean;
   emoji: string;
   en_name?: string | null;

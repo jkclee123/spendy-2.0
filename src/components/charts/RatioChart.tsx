@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import * as aggregatesService from "@/lib/services/aggregates";
 import { RATIO_CHART_COLORS } from "@/lib/ratioPalette";
+import { useLanguage } from "@/hooks/useLanguage";
+import type { CategoryAggregation } from "@/types";
 
 /** Inclusive month range; months are 1-indexed to match the RPC contract. */
 export interface PeriodRange {
@@ -45,16 +47,6 @@ interface PeriodOption {
 
 interface RatioChartProps {
   userId: string;
-  /** URL search-param prefix, so several charts on one page stay independent. */
-  paramPrefix: string;
-  totalLabel: string;
-  /** Must be referentially stable — it drives the data-loading effect. */
-  fetchItems: (userId: string, range: PeriodRange) => Promise<RatioItem[]>;
-  itemHref: (item: RatioItem, dateFilter: DateFilter | null) => string | null;
-  totalHref: (dateFilter: DateFilter | null) => string | null;
-  showEmoji?: boolean;
-  /** Walk the hue palette backwards, so two charts side by side never match. */
-  reverseColors?: boolean;
   className?: string;
 }
 
@@ -89,23 +81,14 @@ function formatCurrency(value: number): string {
  * Arrows step within the selected granularity (month -> month, year -> year)
  * and are disabled on "All Time".
  */
-export function RatioChart({
-  userId,
-  paramPrefix,
-  totalLabel,
-  fetchItems,
-  itemHref,
-  totalHref,
-  showEmoji = false,
-  reverseColors = false,
-  className = "",
-}: RatioChartProps) {
+export function RatioChart({ userId, className = "" }: RatioChartProps) {
   const { t } = useTranslation("charts");
+  const { lang } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const monthParam = `${paramPrefix}Month`;
-  const yearParam = `${paramPrefix}Year`;
-  const allTimeParam = `${paramPrefix}AllTime`;
+  const monthParam = "catMonth";
+  const yearParam = "catYear";
+  const allTimeParam = "catAllTime";
 
   const [currentYearMonth, setCurrentYearMonth] = useState<
     { year: number; month: number } | undefined
@@ -113,7 +96,7 @@ export function RatioChart({
   const [earliestYearMonth, setEarliestYearMonth] = useState<
     { year: number; month: number } | null | undefined
   >(undefined);
-  const [items, setItems] = useState<RatioItem[] | undefined>(undefined);
+  const [items, setItems] = useState<CategoryAggregation[][] | undefined>(undefined);
 
   useEffect(() => {
     if (!userId) return;
@@ -309,20 +292,30 @@ export function RatioChart({
   }, [selection, earliestYearMonth, currentYearMonth]);
 
   useEffect(() => {
-    if (!userId || !range) return;
+    if (!userId || !range || earliestYearMonth === undefined) return;
     let cancelled = false;
     setItems(undefined);
-    fetchItems(userId, range)
+    const args = [
+      userId,
+      range.startYear,
+      range.startMonth,
+      range.endYear,
+      range.endMonth,
+    ] as const;
+    Promise.all([
+      aggregatesService.getExpensesByCategory(...args).catch(() => []),
+      aggregatesService.getIncomeByCategory(...args).catch(() => []),
+    ])
       .then((result) => {
         if (!cancelled) setItems(result);
       })
       .catch(() => {
-        if (!cancelled) setItems([]);
+        if (!cancelled) setItems([[], []]);
       });
     return () => {
       cancelled = true;
     };
-  }, [userId, range, fetchItems]);
+  }, [userId, range, earliestYearMonth]);
 
   const dateFilter = useMemo<DateFilter | null>(() => {
     if (!selection || selection.kind === "all") return null;
@@ -339,20 +332,7 @@ export function RatioChart({
     };
   }, [selection]);
 
-  const rows = useMemo(() => {
-    if (!items) return [];
-    const palette = reverseColors ? [...RATIO_CHART_COLORS].reverse() : RATIO_CHART_COLORS;
-    return [...items]
-      .sort((a, b) => b.total - a.total)
-      .map((item, index) => ({
-        ...item,
-        fill: palette[index % palette.length],
-      }));
-  }, [items, reverseColors]);
-
-  const totalAmount = rows.reduce((sum, item) => sum + item.total, 0);
   const isLoading = items === undefined || earliestYearMonth === undefined || !currentYearMonth;
-  const isEmpty = !isLoading && rows.length === 0;
 
   const periodLabel = useMemo(() => {
     if (!selection) return "";
@@ -361,15 +341,109 @@ export function RatioChart({
     return `${String(selection.month + 1).padStart(2, "0")}/${selection.year}`;
   }, [selection, t]);
 
-  const totalUrl = totalHref(dateFilter);
-  const totalBlock = (
-    <div className="text-center">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{totalLabel}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
-        {formatCurrency(totalAmount)}
-      </p>
-    </div>
-  );
+  const sections = (items ?? []).map((categories, sectionIndex) => {
+    const type = sectionIndex === 0 ? "expense" : "income";
+    const totalLabel = t(type === "expense" ? "totalExpenses" : "totalIncome");
+    const palette = sectionIndex === 0 ? RATIO_CHART_COLORS : [...RATIO_CHART_COLORS].reverse();
+    const rows = [...categories]
+      .sort((a, b) => b.total - a.total)
+      .map((item, index) => ({
+        key: item.category_id ?? "uncategorized",
+        label:
+          (lang === "zh-HK" ? item.zh_name || item.en_name : item.en_name || item.zh_name) ||
+          t("uncategorized"),
+        emoji: item.emoji,
+        total: item.total,
+        filterValue: item.category_id,
+        fill: palette[index % palette.length],
+      }));
+    const totalAmount = rows.reduce((sum, item) => sum + item.total, 0);
+    const params = new URLSearchParams({ type });
+    if (dateFilter) {
+      params.set("fromDate", dateFilter.fromDate);
+      params.set("toDate", dateFilter.toDate);
+    }
+    const totalUrl = `/transactions?${params.toString()}`;
+    const itemHref = (item: RatioItem) => {
+      if (!item.filterValue) return null;
+      const rowParams = new URLSearchParams(params);
+      // Expense category links retain their existing URL shape.
+      if (type === "expense") rowParams.delete("type");
+      rowParams.set("category", item.filterValue);
+      return `/transactions?${rowParams.toString()}`;
+    };
+    const totalBlock = (
+      <div className="text-center">
+        <p className="text-sm text-gray-500 dark:text-gray-400">{totalLabel}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+          {formatCurrency(totalAmount)}
+        </p>
+      </div>
+    );
+
+    return (
+      <div key={type} className={sectionIndex === 0 ? "" : "mt-5"}>
+        <div className="mb-5 flex items-start justify-center gap-8">
+          <Link to={totalUrl} className="hover:opacity-70 transition-opacity">
+            {totalBlock}
+          </Link>
+        </div>
+        {rows.length === 0 && (
+          <div className="flex h-64 flex-col items-center justify-center">
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
+              {t("noDataForPeriod", { period: periodLabel })}
+            </p>
+          </div>
+        )}
+        <div className="flex flex-col gap-2">
+          {rows.map((item, index) => {
+            const widthPct = rows[0].total > 0 ? (item.total / rows[0].total) * 100 : 0;
+            const sharePct = totalAmount > 0 ? (item.total / totalAmount) * 100 : 0;
+            const href = itemHref(item);
+            const rowContent = (
+              <>
+                <span className="flex items-center gap-1 shrink-0">
+                  <span className="text-xl w-8 text-center">{item.emoji || "?"}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate hidden lg:block w-12">
+                    {item.label}
+                  </span>
+                </span>
+                <div className="flex-1 h-1 rounded bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div
+                    className="h-full rounded origin-left"
+                    style={{
+                      width: `${widthPct}%`,
+                      backgroundColor: item.fill,
+                      animation: `barGrow 0.5s ease-out ${index * 60}ms both`,
+                    }}
+                  />
+                </div>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-20 text-right shrink-0 tabular-nums">
+                  {formatCurrency(item.total)}
+                </span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 w-12 text-right shrink-0 tabular-nums">
+                  {sharePct.toFixed(1)}%
+                </span>
+              </>
+            );
+            return href ? (
+              <Link
+                key={item.key}
+                to={href}
+                className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+              >
+                {rowContent}
+              </Link>
+            ) : (
+              <div key={item.key} className="flex items-center gap-2">
+                {rowContent}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  });
 
   return (
     <div className={`w-full ${className}`}>
@@ -419,86 +493,9 @@ export function RatioChart({
         </div>
       )}
 
-      {/* Empty State */}
-      {isEmpty && (
-        <div className="flex h-64 flex-col items-center justify-center">
-          <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
-            {t("noDataForPeriod", { period: periodLabel })}
-          </p>
-        </div>
-      )}
-
-      {/* Chart */}
-      {!isLoading && !isEmpty && (
+      {!isLoading && (
         <>
-          {/* Total */}
-          <div className="mb-5 flex items-start justify-center gap-8">
-            {totalUrl ? (
-              <Link to={totalUrl} className="hover:opacity-70 transition-opacity">
-                {totalBlock}
-              </Link>
-            ) : (
-              totalBlock
-            )}
-          </div>
-
-          {/* Horizontal Bar List */}
-          <div className="flex flex-col gap-2">
-            {rows.map((item, index) => {
-              const widthPct = rows[0].total > 0 ? (item.total / rows[0].total) * 100 : 0;
-              const sharePct = totalAmount > 0 ? (item.total / totalAmount) * 100 : 0;
-              const href = itemHref(item, dateFilter);
-              const rowContent = (
-                <>
-                  <span className="flex items-center gap-1 shrink-0">
-                    {showEmoji && (
-                      <span className="text-xl w-8 text-center">{item.emoji || "?"}</span>
-                    )}
-                    <span
-                      className={`text-sm text-gray-700 dark:text-gray-300 truncate ${
-                        showEmoji ? "hidden lg:block w-12" : "w-20 lg:w-32"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </span>
-                  {/* Bar */}
-                  <div className="flex-1 h-1 rounded bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                    <div
-                      className="h-full rounded origin-left"
-                      style={{
-                        width: `${widthPct}%`,
-                        backgroundColor: item.fill,
-                        animation: `barGrow 0.5s ease-out ${index * 60}ms both`,
-                      }}
-                    />
-                  </div>
-                  {/* Amount */}
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-20 text-right shrink-0 tabular-nums">
-                    {formatCurrency(item.total)}
-                  </span>
-                  {/* Share of the period total */}
-                  <span className="text-sm text-gray-700 dark:text-gray-300 w-12 text-right shrink-0 tabular-nums">
-                    {sharePct.toFixed(1)}%
-                  </span>
-                </>
-              );
-              return href ? (
-                <Link
-                  key={item.key}
-                  to={href}
-                  className="flex items-center gap-2 hover:opacity-70 transition-opacity"
-                >
-                  {rowContent}
-                </Link>
-              ) : (
-                <div key={item.key} className="flex items-center gap-2">
-                  {rowContent}
-                </div>
-              );
-            })}
-          </div>
-
+          {sections}
           <style>{`
             @keyframes barGrow {
               from { transform: scaleX(0); opacity: 0; }

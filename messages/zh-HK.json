@@ -31,6 +31,8 @@
     "incomeExpenseTrend": "收支趨勢",
     "income": "收入",
     "expense": "支出",
+    "netIncome": "收入 - 支出",
+    "cumulativeNetIncome": "累計收支",
     "noData": "本年沒有資料",
     "noDataForPeriod": "{{period}} 沒有資料",
     "categoryFilter": {
@@ -86,6 +88,12 @@
   "categories": {
     "title": "類別",
     "active": "啟用",
+    "expenses": "支出",
+    "incomeCategories": "收入",
+    "categoryType": "類別類型",
+    "typeChangeWarning": "現有記錄會保留收入或支出類型，但會變成未分類。",
+    "expense": "支出",
+    "income": "收入",
     "inactive": "已停用",
     "createNew": "新增類別",
     "editCategory": "編輯類別",

@@ -33,7 +33,7 @@ export function CategoriesPage() {
   }, []);
 
   const handleSave = useCallback(
-    async ({ emoji, name }: { emoji: string; name: string }) => {
+    async ({ emoji, name, type }: { emoji: string; name: string; type: UserCategory["type"] }) => {
       if (!user) return;
       if (editingCategory) {
         await categoryService.updateCategory({
@@ -41,6 +41,7 @@ export function CategoriesPage() {
           userId: user.id,
           emoji,
           name,
+          type,
           currentLang: lang,
         });
       } else {
@@ -48,6 +49,7 @@ export function CategoriesPage() {
           userId: user.id,
           emoji,
           name,
+          type,
           currentLang: lang,
         });
       }
@@ -55,16 +57,6 @@ export function CategoriesPage() {
       await refresh();
     },
     [user, editingCategory, lang, refresh]
-  );
-
-  const handleDeactivate = useCallback(
-    async (category: UserCategory) => {
-      if (!user) return;
-      await categoryService.deactivateCategory(category.id, user.id);
-      clearCatCache(user.id);
-      await refresh();
-    },
-    [user, refresh]
   );
 
   const handleActivate = useCallback(
@@ -105,33 +97,40 @@ export function CategoriesPage() {
         }
       />
 
-      {/* Active Categories */}
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-2">
-        <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-200 ml-2">{t("active")}</h3>
-        {activeCategories.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("noActiveCategories")}</p>
-        ) : (
-          <ul className="space-y-2">
-            {activeCategories.map((category) => (
-              <li key={category.id}>
-                <SwipeableCard
-                  onClick={() => handleEdit(category)}
-                  onSwipeAction={() => handleDeactivate(category)}
-                  actionLabel={t("deactivate")}
-                  actionColor="yellow"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{category.emoji}</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
-                      {getLocalizedName(category)}
-                    </span>
-                  </div>
-                </SwipeableCard>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {(["expense", "income"] as const).map((type) => (
+        <div
+          key={type}
+          className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-2"
+        >
+          <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-200 ml-2">
+            {t(type === "expense" ? "expenses" : "incomeCategories")}
+          </h3>
+          {activeCategories.filter((category) => category.type === type).length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("noCategories")}</p>
+          ) : (
+            <ul className="space-y-2">
+              {activeCategories
+                .filter((category) => category.type === type)
+                .map((category) => (
+                  <li key={category.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(category)}
+                      className="flex min-h-[72px] w-full select-none items-center justify-between rounded-xl border border-gray-400 bg-white p-4 text-left dark:border-gray-500 dark:bg-gray-800 hover:border-black dark:hover:border-gray-400 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{category.emoji}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                          {getLocalizedName(category)}
+                        </span>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      ))}
 
       {/* Inactive Categories */}
       {inactiveCategories.length > 0 && (

@@ -1,6 +1,6 @@
 import type { UserCategory } from "@/types";
 
-const PREFIX = "spendy:cat-cache:";
+const PREFIX = "spendy:cat-cache:v2:";
 
 function getCatCacheKey(userId: string): string {
   return `${PREFIX}${userId}`;

@@ -92,8 +92,9 @@ export function TransactionForm({
 
   const isEditMode = !!initialData;
 
-  const { activeCategories: categories, isLoading: categoriesLoading } = useUserCategories(userId);
+  const { activeCategories, isLoading: categoriesLoading } = useUserCategories(userId);
   const [type, setType] = useState<"expense" | "income">(initialData?.type ?? "expense");
+  const categories = activeCategories.filter((category) => category.type === type);
   const [amount, setAmount] = useState(initialData ? initialData.amount.toString() : "");
   const [name, setName] = useState(initialData?.name ?? "");
   const [category, setCategory] = useState<string | undefined>(
@@ -181,7 +182,7 @@ export function TransactionForm({
           userId,
           amount: evaluatedAmount,
           name,
-          categoryId: type === "income" ? undefined : category,
+          categoryId: category,
           type,
           createdAt: parsedTimestamp ?? initialData.created_at,
           timezoneOffset,
@@ -195,7 +196,7 @@ export function TransactionForm({
           userId,
           amount: evaluatedAmount,
           name,
-          categoryId: type === "income" ? undefined : category,
+          categoryId: category,
           type,
           createdAt: createdAtTimestamp,
           timezoneOffset,
@@ -239,6 +240,7 @@ export function TransactionForm({
         <button
           type="button"
           onClick={() => {
+            if (type !== "expense") setCategory(undefined);
             setType("expense");
             if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
           }}
@@ -250,6 +252,7 @@ export function TransactionForm({
         <button
           type="button"
           onClick={() => {
+            if (type !== "income") setCategory(undefined);
             setType("income");
             if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
           }}
@@ -372,33 +375,32 @@ export function TransactionForm({
       </div>
 
       {/* Category Field */}
-      {type === "expense" &&
-        (categoriesLoading && categories.length === 0 ? (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t("category")}
-              <span className="text-red-500 ml-1">*</span>
-            </label>
-            <div className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-400 bg-white dark:border-gray-500 dark:bg-gray-800">
-              <LoadingSpinner size="sm" />
-            </div>
+      {categoriesLoading && categories.length === 0 ? (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {t("category")}
+            {type === "expense" && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <div className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-400 bg-white dark:border-gray-500 dark:bg-gray-800">
+            <LoadingSpinner size="sm" />
           </div>
-        ) : (
-          <CategoryDropdown
-            label={t("category")}
-            placeholder={t("selectCategory")}
-            required
-            categories={categories}
-            value={category}
-            onChange={(newCategory) => {
-              setCategory(newCategory);
-              if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
-            }}
-            currentLang={lang}
-            disabled={isSubmitting}
-            error={errors.category}
-          />
-        ))}
+        </div>
+      ) : (
+        <CategoryDropdown
+          label={t("category")}
+          placeholder={t("selectCategory")}
+          required={type === "expense"}
+          categories={categories}
+          value={category}
+          onChange={(newCategory) => {
+            setCategory(newCategory);
+            if (errors.category) setErrors((prev) => ({ ...prev, category: undefined }));
+          }}
+          currentLang={lang}
+          disabled={isSubmitting}
+          error={errors.category}
+        />
+      )}
 
       {/* Name Field */}
       <div>

@@ -31,6 +31,8 @@
     "incomeExpenseTrend": "Income Expense Trend",
     "income": "Income",
     "expense": "Expense",
+    "netIncome": "Income - Expense",
+    "cumulativeNetIncome": "Cumulative Net Income",
     "noData": "No data for this year",
     "noDataForPeriod": "No data for {{period}}",
     "categoryFilter": {
@@ -86,6 +88,12 @@
   "categories": {
     "title": "Categories",
     "active": "Active",
+    "expenses": "Expenses",
+    "incomeCategories": "Income Categories",
+    "categoryType": "Category type",
+    "typeChangeWarning": "Existing transactions will keep their income or expense type but become uncategorized.",
+    "expense": "Expense",
+    "income": "Income",
     "inactive": "Inactive",
     "createNew": "Add Category",
     "editCategory": "Edit Category",

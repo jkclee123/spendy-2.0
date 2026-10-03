@@ -9,7 +9,7 @@ interface CategoryEditModalProps {
   onClose: () => void;
   category?: UserCategory;
   currentLang: "en" | "zh-HK";
-  onSave: (data: { emoji: string; name: string }) => Promise<void>;
+  onSave: (data: { emoji: string; name: string; type: UserCategory["type"] }) => Promise<void>;
 }
 
 /**
@@ -29,6 +29,7 @@ export function CategoryEditModal({
   const { t: tCommon } = useTranslation("common");
   const [emoji, setEmoji] = useState("");
   const [name, setName] = useState("");
+  const [type, setType] = useState<UserCategory["type"]>("expense");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ export function CategoryEditModal({
 
   // Initialize form with category data
   useEffect(() => {
+    setType(category?.type ?? "expense");
     if (category) {
       setEmoji(category.emoji);
       const localizedName =
@@ -71,6 +73,7 @@ export function CategoryEditModal({
       await onSave({
         emoji: emoji.trim(),
         name: name.trim(),
+        type,
       });
       onClose();
     } catch (err) {
@@ -88,6 +91,29 @@ export function CategoryEditModal({
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div
+          className="flex rounded-full bg-gray-200 dark:bg-gray-700 p-1"
+          role="group"
+          aria-label={t("categoryType")}
+        >
+          {(["expense", "income"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={type === option}
+              onClick={() => setType(option)}
+              disabled={isLoading}
+              className={`flex-1 py-2 text-sm rounded-full transition-all duration-200 ${type === option ? "bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-gray-100 font-medium" : "text-gray-500 dark:text-gray-400"} disabled:opacity-20`}
+            >
+              {t(option)}
+            </button>
+          ))}
+        </div>
+        {category && category.type !== type && (
+          <p className="text-sm text-gray-500 dark:text-gray-400" role="status">
+            {t("typeChangeWarning")}
+          </p>
+        )}
         {/* Name input */}
         <div>
           <label

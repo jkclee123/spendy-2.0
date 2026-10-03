@@ -62,6 +62,25 @@ export async function getExpensesByCategory(
   return (data ?? []) as CategoryAggregation[];
 }
 
+export async function getIncomeByCategory(
+  userId: string,
+  startYear: number,
+  startMonth: number,
+  endYear: number,
+  endMonth: number
+): Promise<CategoryAggregation[]> {
+  const { data, error } = await supabase.rpc("get_income_by_category", {
+    p_user_id: userId,
+    p_start_year: startYear,
+    p_start_month: startMonth,
+    p_end_year: endYear,
+    p_end_month: endMonth,
+  });
+
+  if (error) throw error;
+  return (data ?? []) as CategoryAggregation[];
+}
+
 export async function getIncomeByName(
   userId: string,
   startYear: number,

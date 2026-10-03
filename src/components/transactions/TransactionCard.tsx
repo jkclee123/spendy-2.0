@@ -28,8 +28,8 @@ export function TransactionCard({ transaction, onClick, onDelete }: TransactionC
 
   const getCategoryName = (): string => {
     if (transaction.name) return transaction.name;
-    if (transaction.type === "income") return t("income");
-    if (!transaction.categoryData) return t("uncategorized");
+    if (!transaction.categoryData)
+      return t(transaction.type === "income" ? "income" : "uncategorized");
 
     if (i18n.language === "zh-HK") {
       return (
