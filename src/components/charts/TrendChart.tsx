@@ -299,11 +299,11 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
     const maxValue = Math.max(0, ...values);
     const minValue = Math.min(0, ...values);
     const range = maxValue - minValue || 1;
-    const roughStep = (range * 1.1) / 5;
+    const roughStep = (range * 1.1) / 6;
     const magnitude = 10 ** Math.floor(Math.log10(roughStep));
     const step = [1, 2, 5, 10].find((factor) => factor * magnitude >= roughStep)! * magnitude;
     const tickMax = Math.ceil((maxValue + range * 0.05) / step) * step;
-    const tickMin = minValue < 0 ? Math.floor((minValue - range * 0.05) / step) * step : 0;
+    const tickMin = minValue < 0 ? Math.floor(minValue / step) * step : 0;
     return Array.from(
       { length: Math.round((tickMax - tickMin) / step) + 1 },
       (_, i) => tickMin + i * step
@@ -473,7 +473,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                 >
                   <ComposedChart
                     data={chartData}
-                    margin={{ top: 16, right: 8, left: 12, bottom: 0 }}
+                    margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
                     onClick={(state) => {
                       if (state.activeTooltipIndex == null) return;
                       const index = Number(state.activeTooltipIndex);
@@ -512,7 +512,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                       tick={{ fontSize: 12, fill: "#808080" }}
                       tickLine={false}
                       axisLine={false}
-                      width={60}
+                      width="auto"
                     />
                     <ReferenceLine
                       y={0}

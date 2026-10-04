@@ -127,7 +127,7 @@ async function renderChart(search = "?trendYear=2026") {
 
 it("uses income and expense lines, a left-hand dynamic scale and a zero baseline", async () => {
   const chart = await renderChart();
-  expect(chart.margin.left).toBeGreaterThan(0);
+  expect(chart.margin.left).toBe(0);
   expect(mocks.bar).not.toHaveBeenCalled();
   expect(mocks.line).toHaveBeenCalledWith(
     expect.objectContaining({ dataKey: "income", stroke: "#22c55e" })
@@ -142,6 +142,7 @@ it("uses income and expense lines, a left-hand dynamic scale and a zero baseline
   expect(mocks.baseline).toHaveBeenLastCalledWith(expect.objectContaining({ y: 0 }));
   const axis = mocks.axis.mock.lastCall![0];
   expect(axis.orientation).toBe("left");
+  expect(axis.width).toBe("auto");
   expect(axis.domain[0]).toBeLessThan(0);
   expect(axis.domain[0]).toBeLessThanOrEqual(-50);
   expect(axis.domain[1]).toBeGreaterThanOrEqual(200);
@@ -150,6 +151,18 @@ it("uses income and expense lines, a left-hand dynamic scale and a zero baseline
   expect(axis.tickFormatter(-10000)).toBe("-$10k");
   expect(screen.getByRole("option", { name: /Salary/ })).toBeTruthy();
   expect(screen.getByTestId("trend-details")).toBeTruthy();
+});
+
+it("uses 5k intervals from -5k to 25k for a roughly 25k data range", async () => {
+  mocks.trend.mockResolvedValueOnce([
+    { month: 1, income: 18000, expense: 9000 },
+    { month: 2, income: 14000, expense: 18300 },
+    { month: 3, income: 16300, expense: 300 },
+  ]);
+  await renderChart();
+  const axis = mocks.axis.mock.lastCall![0];
+  expect(axis.ticks).toEqual([-5000, 0, 5000, 10000, 15000, 20000, 25000]);
+  expect(axis.domain).toEqual([-5000, 25000]);
 });
 
 it("leaves future months blank but keeps past missing months at zero", async () => {

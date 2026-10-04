@@ -5,10 +5,6 @@
  * neighbouring slices stay equally readable.
  */
 export const RATIO_CHART_COLORS = [
-  "#9769dc", // 300° purple
-  "#b35ec3", // 321° magenta
-  "#c855a1", // 343°
-  "#d5517a", // 4° pink
   "#da534e", // 25° red
   "#d55d08", // 47° orange
   "#bb7400", // 68°
@@ -21,4 +17,8 @@ export const RATIO_CHART_COLORS = [
   "#0696b1", // 217° cyan
   "#0590cf", // 239°
   "#4483eb", // 260° blue
+  "#9769dc", // 300° purple
+  "#b35ec3", // 321° magenta
+  "#c855a1", // 343°
+  "#d5517a", // 4° pink
 ] as const;

@@ -344,7 +344,10 @@ export function RatioChart({ userId, className = "" }: RatioChartProps) {
   const sections = (items ?? []).map((categories, sectionIndex) => {
     const type = sectionIndex === 0 ? "expense" : "income";
     const totalLabel = t(type === "expense" ? "totalExpenses" : "totalIncome");
-    const palette = sectionIndex === 0 ? RATIO_CHART_COLORS : [...RATIO_CHART_COLORS].reverse();
+    const palette =
+      sectionIndex === 0
+        ? RATIO_CHART_COLORS
+        : [...RATIO_CHART_COLORS.slice(6), ...RATIO_CHART_COLORS.slice(0, 6)];
     const rows = [...categories]
       .sort((a, b) => b.total - a.total)
       .map((item, index) => ({
