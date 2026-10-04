@@ -286,14 +286,25 @@ it("matches legend text to each line even when both years have the same label", 
 it.each([
   ["food", "expense"],
   ["salary", "income"],
-])("forces the %s category metric in comparison", async (category, metric) => {
+])("preserves the disabled metric for the %s category in comparison", async (category, metric) => {
   await renderChart(`?trendYear=2026&trendYear2=2025&trendMetric=netIncome&trendCat=${category}`);
   const select = screen.getByRole<HTMLSelectElement>("combobox", { name: "metric" });
   expect(select.disabled).toBe(true);
-  expect(select.value).toBe(metric);
+  expect(select.value).toBe("netIncome");
+  expect(screen.getByTestId("location").textContent).toContain("trendMetric=netIncome");
   expect(mocks.line.mock.calls.slice(-2).map(([p]) => p.dataKey)).toEqual([metric, `${metric}2`]);
+  const name = category === "food" ? "Food" : "Salary";
+  expect(mocks.line.mock.calls.slice(-2).map(([p]) => p.name)).toEqual([
+    `${name} (2026)`,
+    `${name} (2025)`,
+  ]);
   expect(mocks.trend).toHaveBeenCalledWith("user", 2026, category);
   expect(mocks.trend).toHaveBeenCalledWith("user", 2025, category);
+  fireEvent.change(screen.getByRole("combobox", { name: "categoryFilter.all" }), {
+    target: { value: "" },
+  });
+  await waitFor(() => expect(select.disabled).toBe(false));
+  expect(select.value).toBe("netIncome");
 });
 
 it("computes future months and cumulative totals independently for each year", async () => {

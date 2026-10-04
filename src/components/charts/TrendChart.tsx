@@ -75,17 +75,18 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       : null;
 
   const selectedCategoryId = searchParams.get("trendCat") || null;
-  const selectedCategoryType = categories?.find(
-    (category) => category.id === selectedCategoryId
-  )?.type;
+  const selectedCategory = categories?.find((category) => category.id === selectedCategoryId);
+  const selectedCategoryName = selectedCategory
+    ? (lang === "zh-HK"
+        ? selectedCategory.zh_name || selectedCategory.en_name
+        : selectedCategory.en_name || selectedCategory.zh_name) || "Unnamed"
+    : null;
   const metricParam = searchParams.get("trendMetric") || "All";
-  const selectedMetric: Metric | "All" =
-    selectedCategoryType ??
-    (metrics.includes(metricParam as Metric)
-      ? (metricParam as Metric)
-      : selectedYear2
-        ? "expense"
-        : "All");
+  const selectedMetric: Metric | "All" = metrics.includes(metricParam as Metric)
+    ? (metricParam as Metric)
+    : selectedYear2
+      ? "expense"
+      : "All";
   const tooltipContainer = useRef<HTMLDivElement>(null);
   const [pinnedMonth, setPinnedMonth] = useState<{ index: number; selection: string } | null>(null);
   const selection = `${selectedYear}/${selectedYear2}/${selectedMetric}/${selectedCategoryId}`;
@@ -212,18 +213,21 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       ...(selectedYear2 ? [selectedYear2] : []),
     ]),
   ].sort((a, b) => b - a);
+  const chartMetric = selectedCategory?.type ?? selectedMetric;
   const series = useMemo(
     () =>
       (selectedYear2 ? [selectedYear, selectedYear2] : [selectedYear]).flatMap((year, index) =>
-        (selectedMetric === "All" ? metrics : [selectedMetric]).map((metric) => ({
+        (chartMetric === "All" ? metrics : [chartMetric]).map((metric) => ({
           key: index === 0 ? metric : `${metric}2`,
           metric,
           year,
           color: index === 0 ? metricColors[metric] : "#0ea5e9",
-          label: selectedYear2 ? `${t(metric)} (${year})` : t(metric),
+          label: selectedYear2
+            ? `${selectedCategoryName ?? t(metric)} (${year})`
+            : (selectedCategoryName ?? t(metric)),
         }))
       ),
-    [selectedYear, selectedYear2, selectedMetric, t]
+    [selectedYear, selectedYear2, chartMetric, selectedCategoryName, t]
   );
 
   const handleCategoryChange = useCallback(
