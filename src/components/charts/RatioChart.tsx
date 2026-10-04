@@ -375,14 +375,12 @@ export function RatioChart({ userId, className = "" }: RatioChartProps) {
     const totalBlock = (
       <div className="text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400">{totalLabel}</p>
-        <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
-          {formatCurrency(totalAmount)}
-        </p>
+        <p className="text-2xl font-bold">{formatCurrency(totalAmount)}</p>
       </div>
     );
 
     return (
-      <div key={type} className={sectionIndex === 0 ? "" : "mt-5"}>
+      <div key={type} className={sectionIndex === 0 ? "text-red-400" : "text-green-400 mt-5"}>
         <div className="mb-5 flex items-start justify-center gap-8">
           <Link to={totalUrl} className="hover:opacity-70 transition-opacity">
             {totalBlock}
@@ -498,7 +496,7 @@ export function RatioChart({ userId, className = "" }: RatioChartProps) {
           {sections}
           <div className="mt-5 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">{t("netIncome")}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-200">
+            <p className="text-2xl font-bold text-purple-400">
               {formatCurrency(
                 (items ?? []).reduce(
                   (net, categories, index) =>

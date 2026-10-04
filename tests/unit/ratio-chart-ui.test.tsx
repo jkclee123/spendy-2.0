@@ -91,11 +91,9 @@ describe("merged ratio card", () => {
     expect(income.className).toBe("flex items-center gap-2 hover:opacity-70 transition-opacity");
     expect(screen.getByText("Uncategorized").closest("a")).toBeNull();
     expect(screen.getByRole("link", { name: /Total Income/ }).textContent).toContain("$250.00");
-    const net = screen.getByText("Income - Expense").parentElement!;
+    const net = screen.getByText("Net Income").parentElement!;
     expect(net.textContent).toContain("$210.00");
-    expect(net.querySelector("p:last-child")!.className).toBe(
-      "text-2xl font-bold text-gray-900 dark:text-gray-200"
-    );
+    expect(net.querySelector("p:last-child")!.className).toBe("text-2xl font-bold text-purple-400");
     expect(mocks.current).toHaveBeenCalledTimes(1);
     expect(mocks.earliest).toHaveBeenCalledTimes(1);
     expect(mocks.expense).toHaveBeenCalledTimes(1);
@@ -142,6 +140,6 @@ describe("merged ratio card", () => {
     mocks.income.mockResolvedValue([{ category_id: "salary", total: income }]);
     renderChart();
     await expectRange(2026, 2, 2026, 2);
-    expect(screen.getByText("Income - Expense").parentElement!.textContent).toContain(expected);
+    expect(screen.getByText("Net Income").parentElement!.textContent).toContain(expected);
   });
 });

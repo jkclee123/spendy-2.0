@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import type { ReactNode } from "react";
+import { cloneElement, useState, type ReactElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { IncomeExpenseTrendChart } from "@/components/charts/TrendChart";
 
 const mocks = vi.hoisted(() => ({
@@ -12,12 +12,23 @@ const mocks = vi.hoisted(() => ({
   line: vi.fn(),
   grid: vi.fn(),
   baseline: vi.fn(),
+  legend: vi.fn(),
+  trend: vi.fn<
+    (
+      _user: string,
+      _year: number,
+      _category: string | null
+    ) => Promise<Array<{ month: number; income: number; expense: number }>>
+  >(async () => [
+    { month: 1, income: 100, expense: 150 },
+    { month: 10, income: 200, expense: 50 },
+  ]),
 }));
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => children,
   ComposedChart: (props: { children: ReactNode }) => {
     mocks.chart(props);
-    return props.children;
+    return <div data-testid="trend-plot">{props.children}</div>;
   },
   XAxis: () => null,
   YAxis: (props: unknown) => {
@@ -40,50 +51,105 @@ vi.mock("recharts", () => ({
     mocks.baseline(props);
     return null;
   },
-  Tooltip: () => null,
-  Legend: () => null,
+  Tooltip: ({ content }: { content: ReactElement }) => {
+    const [active, setActive] = useState(false);
+    return (
+      <>
+        <button onClick={() => setActive(!active)}>Inspect month</button>
+        {cloneElement(content, {
+          active,
+          label: "Jan",
+          payload: mocks.chart.mock.lastCall?.[0].children
+            .filter((child: ReactElement | null) => Array.isArray(child))
+            .flat()
+            .map((child: ReactElement<{ dataKey: string; name: string }>) => ({
+              name: child.props.name,
+              dataKey: child.props.dataKey,
+              value: 100,
+            })),
+        } as Record<string, unknown>)}
+      </>
+    );
+  },
+  Legend: (props: unknown) => {
+    mocks.legend(props);
+    return null;
+  },
 }));
 vi.mock("@/hooks/useLanguage", () => ({ useLanguage: () => ({ lang: "en" }) }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("@/lib/catCache", () => ({ readCatCache: () => null, writeCatCache: vi.fn() }));
-vi.mock("@/lib/services/categories", () => ({ listActiveByUser: async () => [] }));
+vi.mock("@/lib/services/categories", () => ({
+  listActiveByUser: async () => [
+    { id: "food", type: "expense", en_name: "Food" },
+    { id: "salary", type: "income", en_name: "Salary" },
+  ],
+}));
 vi.mock("@/lib/services/aggregates", () => ({
   getCurrentUserYearMonth: async () => ({ year: 2026, month: 9 }),
   listAvailableTransactionYears: async () => [2025, 2026],
-  getMonthlyIncomeExpenseTrend: async () => [
-    { month: 1, income: 100, expense: 150 },
-    { month: 10, income: 200, expense: 50 },
-  ],
+  getMonthlyIncomeExpenseTrend: mocks.trend,
 }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.trend.mockImplementation(async () => [
+    { month: 1, income: 100, expense: 150 },
+    { month: 10, income: 200, expense: 50 },
+  ]);
+});
 afterEach(cleanup);
 
+it("pins clicked month details after hover ends and unpins on a second click", async () => {
+  await renderChart();
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 0 }));
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Jan 2026");
+  expect(screen.getByTestId("trend-details").textContent).toContain("expense: $150.00");
+  act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 0 }));
+  expect(screen.getByTestId("trend-details").textContent).toBe("");
+});
+
 async function renderChart(search = "?trendYear=2026") {
+  function Location() {
+    return <output data-testid="location">{useLocation().search}</output>;
+  }
   render(
     <MemoryRouter initialEntries={[`/charts${search}`]}>
       <IncomeExpenseTrendChart userId="user" />
+      <Location />
     </MemoryRouter>
   );
   await waitFor(() => expect(mocks.chart).toHaveBeenCalled());
   return mocks.chart.mock.lastCall![0];
 }
 
-it("uses paired bars, a net line, a right-hand scale and a zero baseline", async () => {
+it("uses income and expense lines, a left-hand dynamic scale and a zero baseline", async () => {
   const chart = await renderChart();
   expect(chart.margin.left).toBeGreaterThan(0);
-  expect(mocks.bar.mock.calls.map(([props]) => props.dataKey)).toEqual(["income", "expense"]);
+  expect(mocks.bar).not.toHaveBeenCalled();
   expect(mocks.line).toHaveBeenCalledWith(
-    expect.objectContaining({ dataKey: "netIncome", stroke: "#3b82f6" })
+    expect.objectContaining({ dataKey: "income", stroke: "#22c55e" })
+  );
+  expect(mocks.line).toHaveBeenCalledWith(
+    expect.objectContaining({ dataKey: "expense", stroke: "#ef4444" })
+  );
+  expect(mocks.line).toHaveBeenCalledWith(
+    expect.objectContaining({ dataKey: "netIncome", stroke: "#a855f7" })
   );
   expect(mocks.grid).toHaveBeenLastCalledWith(expect.objectContaining({ vertical: false }));
   expect(mocks.baseline).toHaveBeenLastCalledWith(expect.objectContaining({ y: 0 }));
   const axis = mocks.axis.mock.lastCall![0];
-  expect(axis.orientation).toBe("right");
+  expect(axis.orientation).toBe("left");
   expect(axis.domain[0]).toBeLessThan(0);
-  expect(axis.ticks).toEqual([-10000, -5000, 0, 5000, 10000, 15000, 20000]);
+  expect(axis.domain[0]).toBeLessThanOrEqual(-50);
+  expect(axis.domain[1]).toBeGreaterThanOrEqual(200);
+  expect(axis.domain[1]).toBeLessThan(1000);
   expect(axis.interval).toBe(0);
   expect(axis.tickFormatter(-10000)).toBe("-$10k");
+  expect(screen.getByRole("option", { name: /Salary/ })).toBeTruthy();
+  expect(screen.getByTestId("trend-details")).toBeTruthy();
 });
 
 it("leaves future months blank but keeps past missing months at zero", async () => {
@@ -111,7 +177,167 @@ it("leaves future months blank but keeps past missing months at zero", async () 
 
 it("keeps expense category filtering expense-only", async () => {
   await renderChart("?trendYear=2026&trendCat=food");
-  expect(mocks.bar.mock.calls.map(([props]) => props.dataKey)).toEqual(["expense"]);
-  expect(mocks.line).not.toHaveBeenCalled();
+  expect(mocks.bar).not.toHaveBeenCalled();
+  expect([...new Set(mocks.line.mock.calls.map(([props]) => props.dataKey))]).toEqual(["expense"]);
   expect(mocks.axis.mock.lastCall![0].domain[0]).toBe(0);
+});
+
+it("shows only the green income line for an income category", async () => {
+  await renderChart("?trendYear=2026&trendCat=salary");
+  expect([...new Set(mocks.line.mock.calls.map(([props]) => props.dataKey))]).toEqual(["income"]);
+  expect(mocks.line).toHaveBeenCalledWith(expect.objectContaining({ stroke: "#22c55e" }));
+  expect(mocks.axis.mock.lastCall![0].domain[0]).toBe(0);
+});
+
+it("renders active month details outside the plot and clears them on dismissal", async () => {
+  await renderChart();
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  const details = screen.getByTestId("trend-details");
+  expect(details.textContent).toContain("Jan 2026");
+  expect(details.textContent).toContain("income: $100.00");
+  expect(details.firstElementChild!.className).toContain("grid-cols-2");
+  expect(details.querySelectorAll("p")[0].className).toContain("col-span-2");
+  expect(
+    [...details.querySelectorAll("p")].slice(1).map((p) => p.textContent?.split(":")[0])
+  ).toEqual(["income", "expense", "netIncome", "cumulativeNetIncome"]);
+  expect(screen.getByTestId("trend-plot").contains(details)).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  expect(details.textContent).toBe("");
+});
+
+it("requires year 1, defaults to the user's year, and offers an optional year 2 with identical years", async () => {
+  await renderChart("");
+  const first = screen.getByRole<HTMLSelectElement>("combobox", { name: "year1" });
+  const second = screen.getByRole<HTMLSelectElement>("combobox", { name: "year2" });
+  expect(first.required).toBe(true);
+  expect(first.value).toBe("2026");
+  expect(second.required).toBe(false);
+  expect(second.value).toBe("");
+  expect([...second.options].slice(1).map((o) => o.value)).toEqual(
+    [...first.options].map((o) => o.value)
+  );
+  expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "metric" }).value).toBe("All");
+  expect(screen.queryByRole("button", { name: /yearNavigation/ })).toBeNull();
+  fireEvent.change(second, { target: { value: "2025" } });
+  await waitFor(() =>
+    expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "metric" }).value).toBe(
+      "expense"
+    )
+  );
+  expect(screen.getByRole<HTMLOptionElement>("option", { name: "allMetrics" }).disabled).toBe(true);
+});
+
+it.each(["All", "invalid"])(
+  "normalizes comparison metric %s on initial URL load",
+  async (metric) => {
+    await renderChart(`?trendYear=2026&trendYear2=2025&trendMetric=${metric}`);
+    expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "metric" }).value).toBe(
+      "expense"
+    );
+    expect(screen.getByTestId("location").textContent).toContain("trendMetric=expense");
+    expect(mocks.line.mock.lastCall![0].dataKey).toBe("expense2");
+    expect(mocks.trend).toHaveBeenCalledWith("user", 2025, null);
+  }
+);
+
+it.each(["expense", "income", "cumulativeNetIncome", "netIncome"])(
+  "renders only %s for one year and two distinct year-labelled lines for comparison",
+  async (metric) => {
+    await renderChart(`?trendYear=2026&trendMetric=${metric}`);
+    expect(mocks.line.mock.calls.map(([p]) => p.dataKey)).toEqual([metric]);
+    cleanup();
+    vi.clearAllMocks();
+    await renderChart(`?trendYear=2026&trendYear2=2025&trendMetric=${metric}`);
+    const lines = mocks.line.mock.calls.slice(-2).map(([p]) => p);
+    expect(lines.map((p) => p.dataKey)).toEqual([metric, `${metric}2`]);
+    expect(lines.map((p) => p.name)).toEqual([`${metric} (2026)`, `${metric} (2025)`]);
+    expect(lines[0].stroke).not.toBe(lines[1].stroke);
+    expect(lines[1].stroke).toBe("#0ea5e9");
+    expect(lines[0].zIndex).toBeGreaterThan(lines[1].zIndex);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+    const details = screen.getByTestId("trend-details");
+    expect(details.textContent).toContain(`${metric} (2026)`);
+    expect(details.textContent).toContain(`${metric} (2025)`);
+    expect(details.querySelectorAll("p")[1].style.color).toBeTruthy();
+    expect(screen.getByTestId("trend-plot").contains(details)).toBe(false);
+  }
+);
+
+it("matches legend text to each line even when both years have the same label", async () => {
+  await renderChart("?trendYear=2026&trendYear2=2026&trendMetric=expense");
+  const { formatter } = mocks.legend.mock.lastCall![0];
+  expect(formatter("expense (2026)", { color: "#ef4444" }).props.style.color).toBe("#ef4444");
+  expect(formatter("expense (2026)", { color: "#0ea5e9" }).props.style.color).toBe("#0ea5e9");
+});
+
+it.each([
+  ["food", "expense"],
+  ["salary", "income"],
+])("forces the %s category metric in comparison", async (category, metric) => {
+  await renderChart(`?trendYear=2026&trendYear2=2025&trendMetric=netIncome&trendCat=${category}`);
+  const select = screen.getByRole<HTMLSelectElement>("combobox", { name: "metric" });
+  expect(select.disabled).toBe(true);
+  expect(select.value).toBe(metric);
+  expect(mocks.line.mock.calls.slice(-2).map(([p]) => p.dataKey)).toEqual([metric, `${metric}2`]);
+  expect(mocks.trend).toHaveBeenCalledWith("user", 2026, category);
+  expect(mocks.trend).toHaveBeenCalledWith("user", 2025, category);
+});
+
+it("computes future months and cumulative totals independently for each year", async () => {
+  const { data } = await renderChart(
+    "?trendYear=2026&trendYear2=2025&trendMetric=cumulativeNetIncome"
+  );
+  expect(data[10].cumulativeNetIncome).toBeNull();
+  expect(data[10].cumulativeNetIncome2).toBe(100);
+  expect(data[0].cumulativeNetIncome2).toBe(-50);
+  expect(data[9].cumulativeNetIncome).toBe(100);
+});
+
+it("scales only visible series and excludes hidden negative net values", async () => {
+  mocks.trend.mockResolvedValue([{ month: 1, income: 1000000, expense: 10 }]);
+  await renderChart("?trendYear=2026&trendMetric=expense");
+  expect(mocks.axis.mock.lastCall![0].domain[0]).toBe(0);
+  expect(mocks.axis.mock.lastCall![0].domain[1]).toBeLessThan(200);
+});
+
+it("ignores old requests after the selected year changes", async () => {
+  let resolveOld!: (data: Array<{ month: number; income: number; expense: number }>) => void;
+  mocks.trend.mockImplementation((_user, year) =>
+    year === 2025
+      ? new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+      : Promise.resolve([{ month: 1, income: 300, expense: 10 }])
+  );
+  await renderChart();
+  const year = screen.getByRole("combobox", { name: "year1" });
+  fireEvent.change(year, { target: { value: "2025" } });
+  await waitFor(() => expect(mocks.trend).toHaveBeenCalledWith("user", 2025, null));
+  fireEvent.change(year, { target: { value: "2026" } });
+  await waitFor(() => expect(screen.getByTestId("trend-plot")).toBeTruthy());
+  await act(async () => {
+    resolveOld([{ month: 1, income: 99999, expense: 0 }]);
+  });
+  await waitFor(() => expect(mocks.chart.mock.lastCall![0].data[0].income).toBe(300));
+});
+
+it.each(["empty", "error"])("settles loading to an empty state on %s results", async (result) => {
+  if (result === "error") mocks.trend.mockRejectedValue(new Error("Unavailable"));
+  else mocks.trend.mockResolvedValue([]);
+  render(
+    <MemoryRouter>
+      <IncomeExpenseTrendChart userId="user" />
+    </MemoryRouter>
+  );
+  await waitFor(() => expect(screen.getByText("noData")).toBeTruthy());
+  expect(screen.queryByTestId("trend-plot")).toBeNull();
+});
+
+it("normalizes invalid metric and year parameters without dropping other URL state", async () => {
+  await renderChart("?trendYear=bad&trendYear2=bad&trendMetric=bad&keep=yes");
+  expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "year1" }).value).toBe("2026");
+  expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "year2" }).value).toBe("");
+  expect(screen.getByRole<HTMLSelectElement>("combobox", { name: "metric" }).value).toBe("All");
+  expect(screen.getByTestId("location").textContent).toContain("keep=yes");
+  await waitFor(() => expect(screen.getByTestId("location").textContent).not.toContain("bad"));
 });
