@@ -29,7 +29,7 @@ const metricColors = {
   income: "#22c55e",
   expense: "#ef4444",
   netIncome: "#a855f7",
-  cumulativeNetIncome: "#f97316",
+  cumulativeNetIncome: "#eab308",
 };
 type Metric = keyof typeof metricColors;
 const metrics: Metric[] = ["income", "expense", "netIncome", "cumulativeNetIncome"];
@@ -55,6 +55,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth() + 1);
   const [currentPeriodReady, setCurrentPeriodReady] = useState(false);
   const [availableYears, setAvailableYears] = useState<number[] | null>(null);
+  const [earliestTransactionDate, setEarliestTransactionDate] = useState<number | null>(null);
   const [categories, setCategories] = useState<UserCategory[] | undefined>(undefined);
   const [monthlyData, setMonthlyData] = useState<MonthlyIncomeExpenseData[] | undefined>(undefined);
   const [comparisonData, setComparisonData] = useState<MonthlyIncomeExpenseData[]>([]);
@@ -132,6 +133,15 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
     if (!userId) return;
     let active = true;
     setCurrentPeriodReady(false);
+    setEarliestTransactionDate(null);
+    aggregatesService
+      .getEarliestTransactionDate(userId)
+      .then((date) => {
+        if (active) setEarliestTransactionDate(date);
+      })
+      .catch(() => {
+        if (active) setEarliestTransactionDate(null);
+      });
     aggregatesService
       .getCurrentUserYearMonth(userId)
       .then(({ year, month }) => {
@@ -385,7 +395,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
           value={selectedYear}
           onChange={handleYearChange}
           required
-          className="min-h-[38px] appearance-none rounded-lg border border-gray-400 dark:border-gray-500 bg-white px-4 py-2 text-center text-sm font-medium text-gray-900 transition-colors hover:border-black dark:hover:border-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-200"
+          className="min-h-[38px] appearance-none rounded-lg border border-gray-400 dark:border-gray-500 bg-white px-3 py-2 text-left text-sm font-medium text-gray-900 transition-colors hover:border-black dark:hover:border-gray-400 focus:outline-none dark:bg-gray-800 dark:text-gray-200"
           aria-label={t("year1")}
         >
           {yearOptions.map((year) => (
@@ -399,7 +409,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
           value={selectedYear2 ?? ""}
           onChange={(e) => updateParams({ trendYear2: e.target.value || null })}
           aria-label={t("year2")}
-          className="min-h-[38px] rounded-lg border border-gray-400 bg-white px-3 py-2 text-center text-sm font-medium text-gray-900 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-200"
+          className="min-h-[38px] rounded-lg border border-gray-400 bg-white px-3 py-2 text-left text-sm font-medium text-gray-900 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-200"
         >
           <option value="" />
           {yearOptions.map((year) => (
@@ -478,6 +488,16 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                   <ComposedChart
                     data={chartData}
                     margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
+                    onMouseMove={(state) => {
+                      if (state.activeTooltipIndex == null) return;
+                      const index = Number(state.activeTooltipIndex);
+                      if (!Number.isInteger(index) || !chartData[index]) return;
+                      setPinnedMonth((previous) =>
+                        previous?.selection === selection && previous.index !== index
+                          ? null
+                          : previous
+                      );
+                    }}
                     onClick={(state) => {
                       if (state.activeTooltipIndex == null) return;
                       const index = Number(state.activeTooltipIndex);
@@ -549,6 +569,40 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              {chartMetric !== "All" && (
+                <div
+                  data-testid="trend-average"
+                  className="mt-6 flex flex-wrap gap-x-4 gap-y-2 px-3 text-sm"
+                >
+                  {series.map((s) => {
+                    const earliest =
+                      earliestTransactionDate === null ? null : new Date(earliestTransactionDate);
+                    const startMonth = earliest
+                      ? s.year < earliest.getFullYear()
+                        ? 13
+                        : s.year === earliest.getFullYear()
+                          ? earliest.getMonth() + 1
+                          : 1
+                      : 13;
+                    const endMonth =
+                      s.year > currentYear ? 0 : s.year === currentYear ? currentMonth : 12;
+                    const monthCount = Math.max(0, endMonth - startMonth + 1);
+                    const values = chartData
+                      .filter((month) => month.month >= startMonth && month.month <= endMonth)
+                      .map((month) => month[s.key as keyof typeof month])
+                      .filter((value): value is number => typeof value === "number");
+                    const average = monthCount
+                      ? values.reduce((sum, value) => sum + value, 0) / monthCount
+                      : 0;
+                    return (
+                      <p key={s.key} style={{ color: s.color }}>
+                        {t("average")}
+                        {selectedYear2 ? ` (${s.year})` : ""}: {formatCurrency(average)}
+                      </p>
+                    );
+                  })}
+                </div>
+              )}
               <div
                 ref={tooltipContainer}
                 data-testid="trend-details"

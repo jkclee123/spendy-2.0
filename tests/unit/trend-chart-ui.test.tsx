@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   grid: vi.fn(),
   baseline: vi.fn(),
   legend: vi.fn(),
+  earliest: vi.fn(async () => new Date(2025, 2, 1).getTime()),
   trend: vi.fn<
     (
       _user: string,
@@ -87,12 +88,14 @@ vi.mock("@/lib/services/categories", () => ({
 }));
 vi.mock("@/lib/services/aggregates", () => ({
   getCurrentUserYearMonth: async () => ({ year: 2026, month: 9 }),
+  getEarliestTransactionDate: mocks.earliest,
   listAvailableTransactionYears: async () => [2025, 2026],
   getMonthlyIncomeExpenseTrend: mocks.trend,
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.earliest.mockResolvedValue(new Date(2025, 2, 1).getTime());
   mocks.trend.mockImplementation(async () => [
     { month: 1, income: 100, expense: 150 },
     { month: 10, income: 200, expense: 50 },
@@ -111,6 +114,20 @@ it("pins clicked month details after hover ends and unpins on a second click", a
   expect(screen.getByTestId("trend-details").textContent).toBe("");
 });
 
+it("clears a clicked month when hovering another month and does not restore it after hover", async () => {
+  await renderChart();
+  act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 6 }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Jul 2026");
+  act(() => mocks.chart.mock.lastCall![0].onMouseMove({ activeTooltipIndex: 6 }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Jul 2026");
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  act(() => mocks.chart.mock.lastCall![0].onMouseMove({ activeTooltipIndex: 0 }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Jan 2026");
+  expect(screen.getByTestId("trend-details").textContent).not.toContain("Jul 2026");
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  expect(screen.getByTestId("trend-details").textContent).toBe("");
+});
+
 async function renderChart(search = "?trendYear=2026") {
   function Location() {
     return <output data-testid="location">{useLocation().search}</output>;
@@ -124,6 +141,26 @@ async function renderChart(search = "?trendYear=2026") {
   await waitFor(() => expect(mocks.chart).toHaveBeenCalled());
   return mocks.chart.mock.lastCall![0];
 }
+
+it("shows the selected metric average over elapsed months, including zero months", async () => {
+  await renderChart("?trendYear=2026&trendMetric=expense");
+  expect(screen.getByTestId("trend-average").textContent).toContain("average: $20.00");
+});
+
+it("shows separate averages for compared years", async () => {
+  mocks.trend.mockImplementation(async (_user, year) => [
+    { month: 3, income: 0, expense: year === 2026 ? 120 : 240 },
+  ]);
+  await renderChart("?trendYear=2026&trendYear2=2025&trendMetric=expense");
+  expect(screen.getByTestId("trend-average").textContent).toContain("average (2026): $12.00");
+  expect(screen.getByTestId("trend-average").textContent).toContain("average (2025): $24.00");
+});
+
+it("starts the average at the earliest transaction month in the current year", async () => {
+  mocks.earliest.mockResolvedValue(new Date(2026, 2, 1).getTime());
+  await renderChart("?trendYear=2026&trendMetric=expense&trendCat=food");
+  expect(screen.getByTestId("trend-average").textContent).toContain("average: $6.25");
+});
 
 it("uses income and expense lines, a left-hand dynamic scale and a zero baseline", async () => {
   const chart = await renderChart();
@@ -151,6 +188,7 @@ it("uses income and expense lines, a left-hand dynamic scale and a zero baseline
   expect(axis.tickFormatter(-10000)).toBe("-$10k");
   expect(screen.getByRole("option", { name: /Salary/ })).toBeTruthy();
   expect(screen.getByTestId("trend-details")).toBeTruthy();
+  expect(screen.queryByTestId("trend-average")).toBeNull();
 });
 
 it("uses 5k intervals from -5k to 25k for a roughly 25k data range", async () => {
@@ -177,7 +215,7 @@ it("leaves future months blank but keeps past missing months at zero", async () 
   expect(mocks.line).toHaveBeenCalledWith(
     expect.objectContaining({
       dataKey: "cumulativeNetIncome",
-      stroke: "#f97316",
+      stroke: "#eab308",
     })
   );
   expect(data[10]).toMatchObject({ income: null, expense: null, netIncome: null });
@@ -193,6 +231,7 @@ it("keeps expense category filtering expense-only", async () => {
   expect(mocks.bar).not.toHaveBeenCalled();
   expect([...new Set(mocks.line.mock.calls.map(([props]) => props.dataKey))]).toEqual(["expense"]);
   expect(mocks.axis.mock.lastCall![0].domain[0]).toBe(0);
+  expect(screen.getByTestId("trend-average").textContent).toContain("average: $20.00");
 });
 
 it("shows only the green income line for an income category", async () => {
@@ -200,6 +239,7 @@ it("shows only the green income line for an income category", async () => {
   expect([...new Set(mocks.line.mock.calls.map(([props]) => props.dataKey))]).toEqual(["income"]);
   expect(mocks.line).toHaveBeenCalledWith(expect.objectContaining({ stroke: "#22c55e" }));
   expect(mocks.axis.mock.lastCall![0].domain[0]).toBe(0);
+  expect(screen.getByTestId("trend-average").textContent).toContain("average: $30.00");
 });
 
 it("renders active month details outside the plot and clears them on dismissal", async () => {

@@ -38,6 +38,7 @@
     "year2Optional": "Year 2 (optional)",
     "metric": "Metric",
     "allMetrics": "All",
+    "average": "Average",
     "noData": "No data for this year",
     "noDataForPeriod": "No data for {{period}}",
     "categoryFilter": {
