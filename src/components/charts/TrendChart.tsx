@@ -336,8 +336,8 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       payload?: Array<{ name: string; dataKey?: string; value: number }>;
       label?: string;
     }) => {
-      if (pinnedMonth) {
-        const month = chartData[pinnedMonth.index];
+      if (pinnedMonth || !active || !payload?.length) {
+        const month = chartData[pinnedMonth?.index ?? currentMonth - 1];
         active = true;
         label = month.monthLabel;
         payload = series.flatMap((s) => {
@@ -347,8 +347,18 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       }
       if (active && payload && payload.length && tooltipContainer.current) {
         return createPortal(
-          <div className="grid grid-cols-2 items-center gap-x-4 gap-y-2 p-3 sm:flex sm:flex-wrap">
-            <p className="col-span-2 font-medium text-gray-900 dark:text-gray-200">
+          <div
+            className={`grid grid-cols-2 items-center gap-x-4 gap-y-2 p-3 ${
+              selectedYear2
+                ? "sm:grid-cols-[9rem_minmax(0,1fr)_minmax(0,1fr)]"
+                : chartMetric !== "All"
+                  ? "sm:grid-cols-[9rem_minmax(0,1fr)]"
+                  : "sm:flex sm:flex-wrap"
+            }`}
+          >
+            <p
+              className={`col-span-2 font-medium text-gray-900 dark:text-gray-200 ${selectedYear2 || chartMetric !== "All" ? "sm:col-span-1" : ""}`}
+            >
               {label} {!selectedYear2 && selectedYear}
             </p>
             {[...payload]
@@ -376,7 +386,17 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       }
       return null;
     },
-    [selectedYear, selectedYear2, series, formatCurrency, t, pinnedMonth, chartData]
+    [
+      selectedYear,
+      selectedYear2,
+      chartMetric,
+      series,
+      formatCurrency,
+      t,
+      pinnedMonth,
+      chartData,
+      currentMonth,
+    ]
   );
 
   const isEmpty = useMemo(() => {
@@ -461,16 +481,18 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
 
       <div
         data-testid="trend-summary"
-        className={`order-last mt-3 min-h-40 sm:min-h-28 ${isRefreshing ? "opacity-50" : ""}`}
+        className={`order-last mt-1 ${isRefreshing ? "opacity-50" : ""}`}
       >
-        <div
-          ref={tooltipContainer}
-          data-testid="trend-details"
-          className="min-h-28 sm:min-h-16 text-sm"
-        />
-        <div className="min-h-12 px-3 py-2 text-sm">
+        <div className="px-3 pt-2 text-sm">
           {!isLoading && chartMetric !== "All" && (
-            <div data-testid="trend-average" className="flex flex-wrap gap-x-4 gap-y-2">
+            <div
+              data-testid="trend-average"
+              className={
+                selectedYear2
+                  ? "grid grid-cols-2 gap-x-4 gap-y-2 sm:ml-40"
+                  : "flex flex-wrap gap-x-4 gap-y-2 sm:ml-40"
+              }
+            >
               {series.map((s) => {
                 const earliest =
                   earliestTransactionDate === null ? null : new Date(earliestTransactionDate);
@@ -501,6 +523,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
             </div>
           )}
         </div>
+        <div ref={tooltipContainer} data-testid="trend-details" className="text-sm" />
       </div>
 
       {/* Loading State */}

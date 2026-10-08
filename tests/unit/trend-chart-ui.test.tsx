@@ -111,7 +111,7 @@ it("pins clicked month details after hover ends and unpins on a second click", a
   expect(screen.getByTestId("trend-details").textContent).toContain("Jan 2026");
   expect(screen.getByTestId("trend-details").textContent).toContain("expense: $150.00");
   act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 0 }));
-  expect(screen.getByTestId("trend-details").textContent).toBe("");
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
 });
 
 it("clears a clicked month when hovering another month and does not restore it after hover", async () => {
@@ -125,7 +125,7 @@ it("clears a clicked month when hovering another month and does not restore it a
   expect(screen.getByTestId("trend-details").textContent).toContain("Jan 2026");
   expect(screen.getByTestId("trend-details").textContent).not.toContain("Jul 2026");
   fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
-  expect(screen.getByTestId("trend-details").textContent).toBe("");
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
 });
 
 it("updates month details while dragging on touch devices without another click", async () => {
@@ -158,6 +158,14 @@ async function renderChart(search = "?trendYear=2026") {
 it("shows the selected metric average over elapsed months, including zero months", async () => {
   await renderChart("?trendYear=2026&trendMetric=expense");
   expect(screen.getByTestId("trend-average").textContent).toContain("average: $20.00");
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
+  expect(screen.getByTestId("trend-details").textContent).toContain("expense: $50.00");
+  expect(
+    screen
+      .getByTestId("trend-average")
+      .compareDocumentPosition(screen.getByTestId("trend-details")) &
+      Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
 });
 
 it("shows separate averages for compared years", async () => {
@@ -255,8 +263,9 @@ it("shows only the green income line for an income category", async () => {
   expect(screen.getByTestId("trend-average").textContent).toContain("average: $30.00");
 });
 
-it("renders active month details outside the plot and clears them on dismissal", async () => {
+it("renders current month details initially and restores them when hover ends", async () => {
   await renderChart();
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
   fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
   const details = screen.getByTestId("trend-details");
   expect(details.textContent).toContain("Jan 2026");
@@ -268,7 +277,7 @@ it("renders active month details outside the plot and clears them on dismissal",
   ).toEqual(["income", "expense", "netIncome", "cumulativeNetIncome"]);
   expect(screen.getByTestId("trend-plot").contains(details)).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
-  expect(details.textContent).toBe("");
+  expect(details.textContent).toContain("Oct 2026");
 });
 
 it("requires year 1, defaults to the user's year, and offers an optional year 2 with identical years", async () => {
