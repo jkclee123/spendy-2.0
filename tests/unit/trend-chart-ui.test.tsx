@@ -128,6 +128,19 @@ it("clears a clicked month when hovering another month and does not restore it a
   expect(screen.getByTestId("trend-details").textContent).toBe("");
 });
 
+it("updates month details while dragging on touch devices without another click", async () => {
+  await renderChart("?trendYear=2026&trendMetric=income");
+  act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 6 }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Jul 2026");
+  act(() => mocks.chart.mock.lastCall![0].onTouchMove({ activeTooltipIndex: 7 }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Aug 2026");
+  act(() => mocks.chart.mock.lastCall![0].onTouchMove({ activeTooltipIndex: 9 }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
+  expect(screen.getByTestId("trend-details").textContent).toContain("income: $200.00");
+  act(() => mocks.chart.mock.lastCall![0].onTouchMove({ activeTooltipIndex: null }));
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
+});
+
 async function renderChart(search = "?trendYear=2026") {
   function Location() {
     return <output data-testid="location">{useLocation().search}</output>;
@@ -362,6 +375,42 @@ it("scales only visible series and excludes hidden negative net values", async (
   await renderChart("?trendYear=2026&trendMetric=expense");
   expect(mocks.axis.mock.lastCall![0].domain[0]).toBe(0);
   expect(mocks.axis.mock.lastCall![0].domain[1]).toBeLessThan(200);
+});
+
+it("keeps the plot and summary mounted during refresh and preserves the inspected month", async () => {
+  await renderChart("?trendYear=2026&trendMetric=expense");
+  act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 9 }));
+  const plot = screen.getByTestId("trend-plot");
+  const summary = screen.getByTestId("trend-summary");
+  expect(summary.className).toContain("order-last");
+  let resolveRefresh!: (data: Array<{ month: number; income: number; expense: number }>) => void;
+  mocks.trend.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        resolveRefresh = resolve;
+      })
+  );
+  fireEvent.change(screen.getByRole("combobox", { name: "categoryFilter.all" }), {
+    target: { value: "food" },
+  });
+  await waitFor(() => expect(screen.getByTestId("trend-refresh")).toBeTruthy());
+  expect(screen.getByTestId("trend-plot")).toBe(plot);
+  expect(screen.getByTestId("trend-summary")).toBe(summary);
+  await act(async () => resolveRefresh([{ month: 10, income: 0, expense: 75 }]));
+  expect(screen.queryByTestId("trend-refresh")).toBeNull();
+  expect(screen.getByTestId("trend-plot")).toBe(plot);
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
+  expect(screen.getByTestId("trend-details").textContent).toContain("Food: $75.00");
+});
+
+it("preserves the inspected month across metric changes", async () => {
+  await renderChart("?trendYear=2026&trendMetric=expense");
+  act(() => mocks.chart.mock.lastCall![0].onClick({ activeTooltipIndex: 9 }));
+  fireEvent.change(screen.getByRole("combobox", { name: "metric" }), {
+    target: { value: "income" },
+  });
+  expect(screen.getByTestId("trend-details").textContent).toContain("Oct 2026");
+  expect(screen.getByTestId("trend-details").textContent).toContain("income: $200.00");
 });
 
 it("ignores old requests after the selected year changes", async () => {

@@ -58,6 +58,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   const [earliestTransactionDate, setEarliestTransactionDate] = useState<number | null>(null);
   const [categories, setCategories] = useState<UserCategory[] | undefined>(undefined);
   const [monthlyData, setMonthlyData] = useState<MonthlyIncomeExpenseData[] | undefined>(undefined);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [comparisonData, setComparisonData] = useState<MonthlyIncomeExpenseData[]>([]);
 
   const selectedYear = useMemo<number>(() => {
@@ -89,8 +90,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       ? "expense"
       : "All";
   const tooltipContainer = useRef<HTMLDivElement>(null);
-  const [pinnedMonth, setPinnedMonth] = useState<{ index: number; selection: string } | null>(null);
-  const selection = `${selectedYear}/${selectedYear2}/${selectedMetric}/${selectedCategoryId}`;
+  const [pinnedMonth, setPinnedMonth] = useState<{ index: number } | null>(null);
 
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -186,7 +186,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   useEffect(() => {
     if (!userId || !currentPeriodReady) return;
     let active = true;
-    setMonthlyData(undefined);
+    setIsRefreshing(true);
     Promise.all([
       aggregatesService.getMonthlyIncomeExpenseTrend(userId, selectedYear, selectedCategoryId),
       selectedYear2
@@ -197,11 +197,13 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
         if (!active) return;
         setMonthlyData(data);
         setComparisonData(comparison);
+        setIsRefreshing(false);
       })
       .catch(() => {
         if (!active) return;
         setMonthlyData([]);
         setComparisonData([]);
+        setIsRefreshing(false);
       });
     return () => {
       active = false;
@@ -334,7 +336,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       payload?: Array<{ name: string; dataKey?: string; value: number }>;
       label?: string;
     }) => {
-      if (pinnedMonth?.selection === selection) {
+      if (pinnedMonth) {
         const month = chartData[pinnedMonth.index];
         active = true;
         label = month.monthLabel;
@@ -374,7 +376,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
       }
       return null;
     },
-    [selectedYear, selectedYear2, series, formatCurrency, t, pinnedMonth, selection, chartData]
+    [selectedYear, selectedYear2, series, formatCurrency, t, pinnedMonth, chartData]
   );
 
   const isEmpty = useMemo(() => {
@@ -389,7 +391,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
     availableYears === null;
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`flex w-full flex-col ${className}`}>
       <div className="mb-4 grid grid-cols-2 items-center gap-3 sm:grid-cols-4 [&>select]:min-w-0 [&>select]:appearance-none">
         <select
           value={selectedYear}
@@ -457,6 +459,50 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
         </select>
       </div>
 
+      <div
+        data-testid="trend-summary"
+        className={`order-last mt-3 min-h-40 sm:min-h-28 ${isRefreshing ? "opacity-50" : ""}`}
+      >
+        <div
+          ref={tooltipContainer}
+          data-testid="trend-details"
+          className="min-h-28 sm:min-h-16 text-sm"
+        />
+        <div className="min-h-12 px-3 py-2 text-sm">
+          {!isLoading && chartMetric !== "All" && (
+            <div data-testid="trend-average" className="flex flex-wrap gap-x-4 gap-y-2">
+              {series.map((s) => {
+                const earliest =
+                  earliestTransactionDate === null ? null : new Date(earliestTransactionDate);
+                const startMonth = earliest
+                  ? s.year < earliest.getFullYear()
+                    ? 13
+                    : s.year === earliest.getFullYear()
+                      ? earliest.getMonth() + 1
+                      : 1
+                  : 13;
+                const endMonth =
+                  s.year > currentYear ? 0 : s.year === currentYear ? currentMonth : 12;
+                const monthCount = Math.max(0, endMonth - startMonth + 1);
+                const values = chartData
+                  .filter((month) => month.month >= startMonth && month.month <= endMonth)
+                  .map((month) => month[s.key as keyof typeof month])
+                  .filter((value): value is number => typeof value === "number");
+                const average = monthCount
+                  ? values.reduce((sum, value) => sum + value, 0) / monthCount
+                  : 0;
+                return (
+                  <p key={s.key} style={{ color: s.color }}>
+                    {t("average")}
+                    {selectedYear2 ? ` (${s.year})` : ""}: {formatCurrency(average)}
+                  </p>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex h-80 sm:h-[420px] items-center justify-center">
@@ -466,7 +512,15 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
 
       {/* Chart and empty state use the same reserved height as loading. */}
       {!isLoading && (
-        <div>
+        <div className="relative" aria-busy={isRefreshing} data-testid="trend-content">
+          {isRefreshing && (
+            <div
+              data-testid="trend-refresh"
+              className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/50 dark:bg-gray-800/50"
+            >
+              <LoadingSpinner size="lg" />
+            </div>
+          )}
           {isEmpty ? (
             <div className="flex h-80 sm:h-[420px] flex-col items-center justify-center">
               <p className="text-lg font-medium text-gray-900 dark:text-gray-200">
@@ -488,14 +542,18 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                   <ComposedChart
                     data={chartData}
                     margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
+                    onTouchMove={(state) => {
+                      if (state.activeTooltipIndex == null) return;
+                      const index = Number(state.activeTooltipIndex);
+                      if (!Number.isInteger(index) || !chartData[index]) return;
+                      setPinnedMonth({ index });
+                    }}
                     onMouseMove={(state) => {
                       if (state.activeTooltipIndex == null) return;
                       const index = Number(state.activeTooltipIndex);
                       if (!Number.isInteger(index) || !chartData[index]) return;
                       setPinnedMonth((previous) =>
-                        previous?.selection === selection && previous.index !== index
-                          ? null
-                          : previous
+                        previous && previous.index !== index ? null : previous
                       );
                     }}
                     onClick={(state) => {
@@ -503,9 +561,7 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                       const index = Number(state.activeTooltipIndex);
                       if (!Number.isInteger(index) || !chartData[index]) return;
                       setPinnedMonth((previous) =>
-                        previous?.selection === selection && previous.index === index
-                          ? null
-                          : { index, selection }
+                        previous && previous.index === index ? null : { index }
                       );
                     }}
                   >
@@ -569,45 +625,6 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              {chartMetric !== "All" && (
-                <div
-                  data-testid="trend-average"
-                  className="mt-6 flex flex-wrap gap-x-4 gap-y-2 px-3 text-sm"
-                >
-                  {series.map((s) => {
-                    const earliest =
-                      earliestTransactionDate === null ? null : new Date(earliestTransactionDate);
-                    const startMonth = earliest
-                      ? s.year < earliest.getFullYear()
-                        ? 13
-                        : s.year === earliest.getFullYear()
-                          ? earliest.getMonth() + 1
-                          : 1
-                      : 13;
-                    const endMonth =
-                      s.year > currentYear ? 0 : s.year === currentYear ? currentMonth : 12;
-                    const monthCount = Math.max(0, endMonth - startMonth + 1);
-                    const values = chartData
-                      .filter((month) => month.month >= startMonth && month.month <= endMonth)
-                      .map((month) => month[s.key as keyof typeof month])
-                      .filter((value): value is number => typeof value === "number");
-                    const average = monthCount
-                      ? values.reduce((sum, value) => sum + value, 0) / monthCount
-                      : 0;
-                    return (
-                      <p key={s.key} style={{ color: s.color }}>
-                        {t("average")}
-                        {selectedYear2 ? ` (${s.year})` : ""}: {formatCurrency(average)}
-                      </p>
-                    );
-                  })}
-                </div>
-              )}
-              <div
-                ref={tooltipContainer}
-                data-testid="trend-details"
-                className="mt-6 min-h-32 sm:min-h-20 text-sm"
-              />
             </div>
           )}
         </div>
