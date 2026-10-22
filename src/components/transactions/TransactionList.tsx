@@ -24,6 +24,7 @@ interface TransactionListProps {
 }
 
 const PAGE_SIZE = 20;
+const RECONNECT_DEBOUNCE_MS = 500;
 
 interface Filters {
   type?: "expense" | "income";
@@ -168,16 +169,31 @@ export function TransactionList({
   const transactionsLenRef = useRef(0);
   const prevReconnectKeyRef = useRef(0);
 
-  // Reconnect on tab visibility — only if the realtime channel actually dropped
+  // iOS can suspend realtime without reporting a drop. Always recover on resume,
+  // coalescing lifecycle events so one resume only recreates the channel once.
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== "visible") return;
-      if (channelDroppedRef.current) {
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    const bump = () => {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
         setReconnectKey((k) => k + 1);
-      }
+      }, RECONNECT_DEBOUNCE_MS);
     };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") bump();
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) bump();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("online", bump);
+    return () => {
+      clearTimeout(reconnectTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("online", bump);
+    };
   }, []);
 
   useEffect(() => {
@@ -248,8 +264,8 @@ export function TransactionList({
 
     // On reconnect, refetch the full currently-loaded range so the DOM length —
     // and therefore the user's scroll position — is preserved.
-    if (isReconnect && transactionsLenRef.current > PAGE_SIZE) {
-      fetchTransactions(0, false, transactionsLenRef.current);
+    if (isReconnect) {
+      fetchTransactions(0, false, Math.max(transactionsLenRef.current, PAGE_SIZE));
       return;
     }
 
@@ -294,6 +310,8 @@ export function TransactionList({
 
   // Realtime subscription
   useEffect(() => {
+    let active = true;
+    let hadDrop = false;
     const filters: Filters = {
       type,
       nameSearch,
@@ -342,17 +360,35 @@ export function TransactionList({
         }
       )
       .subscribe((status) => {
+        if (!active) return;
         if (status === "SUBSCRIBED") {
+          if (channelDroppedRef.current || hadDrop) {
+            fetchTransactions(0, false, Math.max(transactionsLenRef.current, PAGE_SIZE));
+          }
           channelDroppedRef.current = false;
+          hadDrop = false;
         } else if (status === "TIMED_OUT" || status === "CLOSED" || status === "CHANNEL_ERROR") {
           channelDroppedRef.current = true;
+          hadDrop = true;
         }
       });
 
     return () => {
+      active = false;
       supabase.removeChannel(channel);
     };
-  }, [userId, type, nameSearch, category, minAmount, maxAmount, startDate, endDate, reconnectKey]);
+  }, [
+    userId,
+    type,
+    nameSearch,
+    category,
+    minAmount,
+    maxAmount,
+    startDate,
+    endDate,
+    reconnectKey,
+    fetchTransactions,
+  ]);
 
   // Load more
   const loadMore = useCallback(async () => {
