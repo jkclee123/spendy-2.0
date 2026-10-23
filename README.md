@@ -168,7 +168,13 @@ curl -X POST https://your-project.supabase.co/functions/v1/create-transaction \
 
 ### iOS Shortcuts Integration
 
-The Settings page includes a downloadable iOS Shortcut for quick transaction entry from your mobile devices.
+The Settings page includes three downloadable iOS Shortcuts, shared across all app languages:
+
+1. **Spendy API** (`spendy-api.shortcut`): Install this first and paste the API token from Settings into its `apiToken` field. This shortcut handles category selection and sends transactions to Spendy.
+2. **Spendy Messages** (`spendy-messages.shortcut`): Extracts the amount and name from message notifications and passes them to `spendy-api`.
+3. **Spendy Octopus** (`spendy-octopus.shortcut`): Extracts the amount and name from Octopus notifications and passes them to `spendy-api`.
+
+Keep the shortcut names unchanged and connect the notification shortcuts to your iPhone automations. Only `spendy-api` needs an API token. The signed files are served from `public/shortcuts/` with the frontend deployment; no Supabase Storage bucket or database changes are required.
 
 ## Deployment
 

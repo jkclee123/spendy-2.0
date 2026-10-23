@@ -86,9 +86,20 @@
       "rateLimit": "速率限制：每分鐘 60 個請求"
     },
     "iosShortcut": {
-      "title": "iPhone API 捷徑",
-      "description": "下載捷徑，貼上 API 密鑰，使用捷徑快速新增記錄",
-      "downloadButton": "下載 iPhone 捷徑"
+      "title": "iPhone 捷徑",
+      "description": "先安裝 spendy-api，將上方的 API 密鑰貼到捷徑的 apiToken 欄位，再安裝其他捷徑並連接至 iPhone 自動化操作。",
+      "api": {
+        "downloadButton": "下載 API 捷徑",
+        "description": "必須安裝：只需在此捷徑設定 API 密鑰。"
+      },
+      "messages": {
+        "downloadButton": "下載訊息捷徑",
+        "description": "從訊息通知擷取金額及名稱，再傳送至 spendy-api。"
+      },
+      "octopus": {
+        "downloadButton": "下載八達通捷徑",
+        "description": "從八達通通知擷取金額及名稱，再傳送至 spendy-api。"
+      }
     }
   },
   "categories": {

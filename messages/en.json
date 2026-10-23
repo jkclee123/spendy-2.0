@@ -86,9 +86,20 @@
       "rateLimit": "Rate Limit: 60 requests per minute"
     },
     "iosShortcut": {
-      "title": "iPhone API Shortcut",
-      "description": "Download this shortcut, paste in your API token to quickly add transactions",
-      "downloadButton": "Download iPhone Shortcut"
+      "title": "iPhone Shortcuts",
+      "description": "Install spendy-api first, then paste your API token from above into its apiToken field. Install the other shortcuts and connect them to your iPhone automations. ",
+      "api": {
+        "downloadButton": "Download API Shortcut",
+        "description": "Required: Only this shortcut needs your API token."
+      },
+      "messages": {
+        "downloadButton": "Download Messages Shortcut",
+        "description": "Extracts the amount and name from a message notification and passes them to spendy-api."
+      },
+      "octopus": {
+        "downloadButton": "Download Octopus Shortcut",
+        "description": "Extracts the amount and name from an Octopus notification and passes them to spendy-api."
+      }
     }
   },
   "categories": {
