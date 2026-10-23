@@ -212,7 +212,7 @@ it("uses income and expense lines, a left-hand dynamic scale and a zero baseline
   expect(screen.queryByTestId("trend-average")).toBeNull();
 });
 
-it("uses 5k intervals from -5k to 25k for a roughly 25k data range", async () => {
+it("uses 5k intervals and excludes cumulative net income from the all-metrics scale", async () => {
   mocks.trend.mockResolvedValueOnce([
     { month: 1, income: 18000, expense: 9000 },
     { month: 2, income: 14000, expense: 18300 },
@@ -220,8 +220,8 @@ it("uses 5k intervals from -5k to 25k for a roughly 25k data range", async () =>
   ]);
   await renderChart();
   const axis = mocks.axis.mock.lastCall![0];
-  expect(axis.ticks).toEqual([-5000, 0, 5000, 10000, 15000, 20000, 25000]);
-  expect(axis.domain).toEqual([-5000, 25000]);
+  expect(axis.ticks).toEqual([-5000, 0, 5000, 10000, 15000, 20000]);
+  expect(axis.domain).toEqual([-5000, 20000]);
 });
 
 it("leaves future months blank but keeps past missing months at zero", async () => {
@@ -233,12 +233,6 @@ it("leaves future months blank but keeps past missing months at zero", async () 
   expect(data[1].cumulativeNetIncome).toBe(-50);
   expect(data[9].cumulativeNetIncome).toBe(100);
   expect(data[10].cumulativeNetIncome).toBeNull();
-  expect(mocks.line).toHaveBeenCalledWith(
-    expect.objectContaining({
-      dataKey: "cumulativeNetIncome",
-      stroke: "#eab308",
-    })
-  );
   expect(data[10]).toMatchObject({ income: null, expense: null, netIncome: null });
   expect(data[11].netIncome).toBeNull();
   cleanup();
@@ -274,10 +268,42 @@ it("renders current month details initially and restores them when hover ends", 
   expect(details.querySelectorAll("p")[0].className).toContain("col-span-2");
   expect(
     [...details.querySelectorAll("p")].slice(1).map((p) => p.textContent?.split(":")[0])
-  ).toEqual(["income", "expense", "netIncome", "cumulativeNetIncome"]);
+  ).toEqual(["income", "expense", "netIncome"]);
   expect(screen.getByTestId("trend-plot").contains(details)).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
   expect(details.textContent).toContain("Oct 2026");
+});
+
+it("shows cumulative net income only when explicitly selected, not in all metrics", async () => {
+  await renderChart();
+  expect([...new Set(mocks.line.mock.calls.map(([props]) => props.dataKey))]).toEqual([
+    "income",
+    "expense",
+    "netIncome",
+  ]);
+  const details = screen.getByTestId("trend-details");
+  expect(details.textContent).not.toContain("cumulativeNetIncome");
+
+  fireEvent.change(screen.getByRole("combobox", { name: "metric" }), {
+    target: { value: "cumulativeNetIncome" },
+  });
+  expect(mocks.line).toHaveBeenLastCalledWith(
+    expect.objectContaining({ dataKey: "cumulativeNetIncome", stroke: "#eab308" })
+  );
+  expect(details.textContent).toContain("cumulativeNetIncome: $100.00");
+
+  mocks.line.mockClear();
+  fireEvent.change(screen.getByRole("combobox", { name: "metric" }), {
+    target: { value: "All" },
+  });
+  expect(mocks.line.mock.calls.map(([props]) => props.dataKey)).toEqual([
+    "income",
+    "expense",
+    "netIncome",
+  ]);
+  expect(details.textContent).not.toContain("cumulativeNetIncome");
+  fireEvent.click(screen.getByRole("button", { name: "Inspect month" }));
+  expect(details.textContent).not.toContain("cumulativeNetIncome");
 });
 
 it("requires year 1, defaults to the user's year, and offers an optional year 2 with identical years", async () => {

@@ -229,7 +229,10 @@ export function IncomeExpenseTrendChart({ userId, className = "" }: IncomeExpens
   const series = useMemo(
     () =>
       (selectedYear2 ? [selectedYear, selectedYear2] : [selectedYear]).flatMap((year, index) =>
-        (chartMetric === "All" ? metrics : [chartMetric]).map((metric) => ({
+        (chartMetric === "All"
+          ? metrics.filter((metric) => metric !== "cumulativeNetIncome")
+          : [chartMetric]
+        ).map((metric) => ({
           key: index === 0 ? metric : `${metric}2`,
           metric,
           year,
