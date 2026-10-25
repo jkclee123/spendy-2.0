@@ -10,12 +10,12 @@ import { IosShortcutDownload } from "@/components/settings/IosShortcutDownload";
 import en from "../../messages/en.json";
 import zhHK from "../../messages/zh-HK.json";
 
-const filenames = ["spendy-api.shortcut", "spendy-messages.shortcut", "spendy-octopus.shortcut"];
+const filenames = ["spendy-shortcut-en.shortcut", "spendy-shortcut-zh.shortcut"];
 
 afterEach(cleanup);
 
 describe("iOS shortcut downloads", () => {
-  it.each(["en", "zh-HK"])("offers the same three files in %s", async (language) => {
+  it.each(["en", "zh-HK"])("offers the localized shortcut in %s", async (language) => {
     const i18n = createInstance();
     await i18n.init({
       lng: language,
@@ -32,22 +32,15 @@ describe("iOS shortcut downloads", () => {
     );
 
     const links = screen.getAllByRole("link");
-    expect(links).toHaveLength(3);
-    links.forEach((link, index) => {
-      expect(link.getAttribute("href")).toBe(`/shortcuts/${filenames[index]}`);
-      expect(link.getAttribute("download")).toBe(filenames[index]);
-      expect(link.textContent).toBeTruthy();
-    });
-    expect(screen.getByText(/apiToken/)).toBeTruthy();
-    expect(links[0].querySelector("img")).toBeNull();
-    ["messages", "octopus"].forEach((shortcut, index) => {
-      const icon = links[index + 1].querySelector("img");
-      expect(icon?.getAttribute("src")).toBe(`/icons/${shortcut}.png`);
-      expect(icon?.getAttribute("alt")).toBe("");
-    });
+    expect(links).toHaveLength(1);
+    const filename = filenames[language === "zh-HK" ? 1 : 0];
+    expect(links[0].getAttribute("href")).toBe(`/shortcuts/${filename}`);
+    expect(links[0].getAttribute("download")).toBe(filename);
+    const messages = language === "zh-HK" ? zhHK : en;
+    expect(links[0].textContent).toBe(messages.settings.iosShortcut.downloadButton);
   });
 
-  it("ships only the three signed shortcut files", () => {
+  it("ships only the two signed localized shortcut files", () => {
     const directory = join(process.cwd(), "public/shortcuts");
     expect(
       readdirSync(directory)

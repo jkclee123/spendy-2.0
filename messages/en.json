@@ -86,20 +86,9 @@
       "rateLimit": "Rate Limit: 60 requests per minute"
     },
     "iosShortcut": {
-      "title": "iPhone Shortcuts",
-      "description": "Install the Spendy shortcut first, then install other shortcuts and connect them to your iPhone automations.",
-      "api": {
-        "downloadButton": "Download Spendy Shortcut",
-        "description": "Required: Paste your API token from above into the shortcut's apiToken field."
-      },
-      "messages": {
-        "downloadButton": "Download Messages Shortcut",
-        "description": "Extracts the amount and name from a message notification."
-      },
-      "octopus": {
-        "downloadButton": "Download Octopus Shortcut",
-        "description": "Extracts the amount and name from an Octopus notification."
-      }
+      "title": "iPhone API Shortcut",
+      "description": "Download shortcut, paste in your API token, enable automation",
+      "downloadButton": "Download iPhone Shortcut"
     }
   },
   "categories": {
