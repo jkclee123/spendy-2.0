@@ -49,19 +49,21 @@ export function TransactionCard({ transaction, onClick, onDelete }: TransactionC
       onClick={onClick ? () => onClick(transaction) : undefined}
       disabled={!onDelete}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex shrink-0 items-center justify-center">
           <span className="text-2xl">{transaction.categoryData?.emoji || "💰"}</span>
         </div>
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-900 dark:text-gray-200">{getCategoryName()}</span>
+        <div className="flex min-w-0 flex-col">
+          <span className="line-clamp-2 break-words font-medium text-gray-900 dark:text-gray-200">
+            {getCategoryName()}
+          </span>
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             <time dateTime={new Date(transaction.created_at).toISOString()}>{formattedTime}</time>
           </div>
         </div>
       </div>
-      <div className="flex flex-col items-end">
-        <span className="text-lg font-semibold text-gray-900 dark:text-gray-200">
+      <div className="ml-3 flex shrink-0 flex-col items-end">
+        <span className="whitespace-nowrap text-lg font-semibold text-gray-900 dark:text-gray-200">
           {transaction.type === "expense" ? "-" : "+"}
           {formattedAmount}
         </span>
