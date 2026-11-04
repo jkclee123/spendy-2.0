@@ -168,7 +168,13 @@ curl -X POST https://your-project.supabase.co/functions/v1/create-transaction \
 
 ### iOS Shortcuts Integration
 
-The Settings page includes a downloadable iOS Shortcut for quick transaction entry from your mobile devices.
+The Settings page includes three signed iOS Shortcuts, shared across both app languages:
+
+1. **Spendy API**: Install this first. Paste the API token from Settings into the empty Text action above the `apiToken` variable. This shortcut sends transaction details to Spendy.
+2. **Spendy Wallet**: Run this from your Wallet automation with the notification input. It processes the notification and calls **Spendy API**.
+3. **Spendy Messages**: Run this from your Messages automation with the notification input. It processes the notification and calls **Spendy API**.
+
+Keep all shortcut names unchanged: Wallet and Messages call **Spendy API** by its exact name. Only **Spendy API** needs an API token. The signed files are served from `public/shortcuts/`; the Wallet and Messages buttons use locally hosted Apple app icons from their App Store listings.
 
 ## Deployment
 

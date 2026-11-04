@@ -86,9 +86,20 @@
       "rateLimit": "Rate Limit: 60 requests per minute"
     },
     "iosShortcut": {
-      "title": "iPhone API Shortcut",
-      "description": "Download shortcut, paste in your API token, enable automation",
-      "downloadButton": "Download iPhone Shortcut"
+      "title": "iPhone Shortcuts",
+      "description": "Install Spendy API first, then set up iPhone automations to run Spendy Wallet or Spendy Messages with the notification input. Keep all shortcut names unchanged.",
+      "api": {
+        "downloadButton": "Download Spendy API Shortcut",
+        "description": "Required: Paste your API token from above into the empty Text action above apiToken in Spendy API. Only this shortcut needs your token."
+      },
+      "wallet": {
+        "downloadButton": "Download Wallet Shortcut",
+        "description": "Processes Wallet notifications and passes the transaction details to Spendy API."
+      },
+      "messages": {
+        "downloadButton": "Download Messages Shortcut",
+        "description": "Processes message notifications and passes the transaction details to Spendy API."
+      }
     }
   },
   "categories": {
