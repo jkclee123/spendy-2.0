@@ -169,9 +169,12 @@ curl -X POST https://your-project.supabase.co/functions/v1/create-transaction \
 ```json
 {
   "success": true,
-  "amount": 5.5
+  "amount": "5.50"
 }
 ```
+
+The response `amount` is a string formatted to two decimal places for display.
+This does not change the amount saved to the database.
 
 **Rate Limits:** 60 requests per minute per API token
 

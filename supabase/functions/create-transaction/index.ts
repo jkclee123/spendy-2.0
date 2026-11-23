@@ -2,6 +2,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RATE_LIMIT = 60; // requests per minute
 const RATE_WINDOW_MS = 60_000;
+const displayAmount = new Intl.NumberFormat("en-US", {
+  useGrouping: false,
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 interface RequestBody {
   amount?: unknown;
@@ -173,7 +178,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  return new Response(JSON.stringify({ success: true, amount }), {
+  return new Response(JSON.stringify({ success: true, amount: displayAmount.format(amount) }), {
     status: 201,
     headers: rateLimitHeaders,
   });
