@@ -76,6 +76,12 @@ bun run test tests/unit/category-ordering.test.ts
 bun run test tests/contract/api-transactions-create.test.ts
 ```
 
+## Spendy Cloud Edge Function
+
+- Use `bash scripts/supabase-cloud.sh check` to verify production access without a macOS Keychain prompt.
+- Only when asked to deploy, use `bash scripts/supabase-cloud.sh deploy` to deploy `create-transaction` to Spendy.
+- For other hosted Spendy commands, keep the explicit project credential and `SUPABASE_NO_KEYRING=1`. Do not run `supabase login` or retry without the credential. If the credential is missing, expired, or gets `403`, direct the user to the [token setup guide](README.md#supabase-keychain-prompt-or-token-expiry).
+
 ## Cursor Rules
 
 - TypeScript 5.x with strict mode

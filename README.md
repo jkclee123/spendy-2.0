@@ -189,12 +189,22 @@ Keep all shortcut names unchanged: Wallet and Messages call **Spendy API** by it
 
 ### Supabase
 
-Deploy your database and Edge Functions:
+For the Spendy production Edge Function, use the wrapper instead of running `supabase` directly:
 
 ```bash
-supabase db push
-supabase functions deploy create-transaction
+bash scripts/supabase-cloud.sh check
+bash scripts/supabase-cloud.sh deploy
 ```
+
+`check` is read-only. `deploy` publishes only `create-transaction` to production and does not apply database migrations.
+
+#### Supabase Keychain prompt or token expiry
+
+1. If macOS asks for Keychain access, click **Deny** and switch to `bash scripts/supabase-cloud.sh check`. This command won't use Keychain.
+2. If `check` reports a missing credential or returns `401` or `403`, create a [scoped personal access token](https://supabase.com/dashboard/account/tokens) for **Spendy** (`yawvflmnqsbwzzvnuqui`) with **Edge Functions → Read and Write**.
+3. From the repo root, run `bash scripts/supabase-cloud.sh setup`, paste the token at the hidden Terminal prompt, then run `bash scripts/supabase-cloud.sh check` again. Don't paste the token into chat or run `supabase login` for this workflow.
+
+Setup stores the token in a private local file outside the repo (`~/.config/spendy/supabase-access-token` by default). If you already inject secrets through your environment, set `SPENDY_SUPABASE_ACCESS_TOKEN` instead; it takes precedence over that file.
 
 ### Vercel (Recommended)
 
