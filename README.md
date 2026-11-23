@@ -164,6 +164,15 @@ curl -X POST https://your-project.supabase.co/functions/v1/create-transaction \
 | `category` | string | Yes      | Category name (auto-created if not exists) |
 | `name`     | string | No       | Optional transaction description           |
 
+**Success Response (`201 Created`):**
+
+```json
+{
+  "success": true,
+  "amount": 5.5
+}
+```
+
 **Rate Limits:** 60 requests per minute per API token
 
 ### iOS Shortcuts Integration

@@ -173,7 +173,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  return new Response(JSON.stringify({ success: true }), {
+  return new Response(JSON.stringify({ success: true, amount }), {
     status: 201,
     headers: rateLimitHeaders,
   });
